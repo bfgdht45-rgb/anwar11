@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "runtime": "nodejs20.x",
+  "regions": ["sin1"],
+  "env": {
+    "DATABASE_URL": "@database-url"
+  }
+}
