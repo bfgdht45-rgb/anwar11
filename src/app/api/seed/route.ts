@@ -253,7 +253,6 @@ export async function GET() {
         showGrade: true,
         showSolution: true,
         passingScore: 60,
-        lessonId: lesson1.id,
         questions: {
           create: [
             { type: QuestionType.MCQ, difficulty: Difficulty.EASY, points: 5, text: 'lim(x→1) (x³ - 1)/(x - 1) = ?', options: ['1', '2', '3', '0'], correctAnswer: '3', explanation: 'التحليل: x²+x+1 = 3' },
@@ -394,8 +393,7 @@ function gradeExam() {
       },
     });
 
-    // ربط الامتحان بالدرس
-    await db.lesson.update({ where: { id: lesson1.id }, data: { examId: htmlExam.id } });
+    // ربط الامتحان بالدرس يتم تلقائياً عبر lessonId
 
     // ===== التعليقات =====
     log.push('💬 إنشاء التعليقات...');
