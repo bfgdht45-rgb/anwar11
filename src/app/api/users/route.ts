@@ -34,7 +34,9 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return NextResponse.json({ users });
+    // تحويل role لحروف صغيرة للتوافق مع الـ frontend
+    const normalizedUsers = users.map(u => ({ ...u, role: u.role.toLowerCase() }));
+    return NextResponse.json({ users: normalizedUsers });
   } catch (error) {
     console.error('GET /api/users error:', error);
     return NextResponse.json({ error: 'فشل في جلب المستخدمين' }, { status: 500 });

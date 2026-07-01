@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { VideoPlayer, PdfViewer } from '@/components/shared/VideoPlayer';
 import { Button } from '@/components/ui/button';
@@ -21,47 +21,58 @@ import HtmlExamRunner from '@/components/shared/HtmlExamRunner';
 export default function LessonPage() {
   const {
     lessons, currentLessonId, currentUser, setView, addComment,
-    toggleFavorite, markLessonComplete, comments, assignments, exams,
-    users, addGrade
+    toggleFavorite, markLessonComplete, addGrade, fetchComments
   } = useStore();
 
   const [tab, setTab] = useState('content');
   const [commentText, setCommentText] = useState('');
   const [commentRating, setCommentRating] = useState(5);
 
+  // جلب التعليقات الخاصة بالدرس الحالي
+  useEffect(() => {
+    if (currentLessonId) {
+      fetchComments(currentLessonId);
+    }
+  }, [currentLessonId, fetchComments]);
+
   if (!currentLessonId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Button onClick={() => setView('student-dashboard')}>العودة</Button>
+        <Button onClick={() => setView(`${currentUser?.role}-dashboard` as any)}>العودة</Button>
       </div>
     );
   }
 
-  const lesson = lessons.find(l => l.id === currentLessonId);
+  const lesson = lessons.find(l => l.id === currentLessonId) as any;
   if (!lesson) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="mb-4">الدرس غير موجود</p>
-          <Button onClick={() => setView('student-dashboard')}>العودة</Button>
+          <Button onClick={() => setView(`${currentUser?.role}-dashboard` as any)}>العودة</Button>
         </div>
       </div>
     );
   }
 
-  const teacher = users.find(u => u.id === lesson.teacherId);
-  const lessonComments = comments.filter(c => c.lessonId === lesson.id);
-  const assignment = assignments.find(a => a.id === lesson.assignmentId);
-  const exam = exams.find(e => e.id === lesson.examId) || exams.find(e => e.isHtmlExam);
+  // استخدام البيانات من داخل الـ lesson object (من API)
+  const teacher = lesson.teacher;
+  const lessonComments = (lesson.comments || []).map((c: any) => ({
+    ...c,
+    userName: c.user?.name || c.userName || 'مستخدم',
+    userAvatar: c.user?.avatar || c.userAvatar || '👤',
+  }));
+  const assignment = lesson.assignment;
+  const exam = lesson.exam;
   const isFavorite = currentUser?.favorites?.includes(lesson.id);
   const isCompleted = currentUser?.completedLessons?.includes(lesson.id);
 
-  const handleComment = () => {
+  const handleComment = async () => {
     if (!commentText.trim()) {
       toast.error('اكتب تعليقاً');
       return;
     }
-    addComment(lesson.id, commentText, commentRating);
+    await addComment(lesson.id, commentText, commentRating);
     setCommentText('');
     setCommentRating(5);
     toast.success('تم إضافة تعليقك');
@@ -108,8 +119,8 @@ export default function LessonPage() {
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="content">المحتوى</TabsTrigger>
-                <TabsTrigger value="pdfs">PDF ({lesson.pdfs.length})</TabsTrigger>
-                <TabsTrigger value="files">ملفات ({lesson.additionalFiles.length})</TabsTrigger>
+                <TabsTrigger value="pdfs">PDF ({(lesson.pdfs || []).length})</TabsTrigger>
+                <TabsTrigger value="files">ملفات ({(lesson.additionalFiles || []).length})</TabsTrigger>
                 <TabsTrigger value="assignment">واجب</TabsTrigger>
                 <TabsTrigger value="exam">امتحان</TabsTrigger>
               </TabsList>
@@ -131,10 +142,10 @@ export default function LessonPage() {
 
               {/* PDFs Tab */}
               <TabsContent value="pdfs" className="space-y-4">
-                {lesson.pdfs.length === 0 ? (
+                {(lesson.pdfs || []).length === 0 ? (
                   <Card><CardContent className="pt-6 text-center text-muted-foreground">لا توجد ملفات PDF</CardContent></Card>
                 ) : (
-                  lesson.pdfs.map(pdf => (
+                  (lesson.pdfs || []).map(pdf => (
                     <PdfViewer key={pdf.id} name={pdf.name} url={pdf.url} allowDownload={lesson.allowPdfDownload} />
                   ))
                 )}
@@ -142,10 +153,10 @@ export default function LessonPage() {
 
               {/* Files Tab */}
               <TabsContent value="files" className="space-y-4">
-                {lesson.additionalFiles.length === 0 ? (
+                {(lesson.additionalFiles || []).length === 0 ? (
                   <Card><CardContent className="pt-6 text-center text-muted-foreground">لا توجد ملفات إضافية</CardContent></Card>
                 ) : (
-                  lesson.additionalFiles.map(file => (
+                  (lesson.additionalFiles || []).map(file => (
                     <Card key={file.id}>
                       <CardContent className="p-4 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">

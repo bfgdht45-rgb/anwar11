@@ -541,10 +541,10 @@ function ManageStudents() {
 
 // ===== Manage Lessons =====
 function ManageLessons() {
-  const { lessons, deleteLesson, addLesson, updateLesson, currentUser, openLesson, units, users } = useStore();
+  const { lessons, deleteLesson, addLesson, updateLesson, currentUser, openLesson, units, users, fetchUsers, fetchUnits } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
-  const teachers = users.filter(u => u.role === 'teacher');
+  const teachers = users.filter((u: any) => u.role === 'teacher');
   const [newLesson, setNewLesson] = useState({
     title: '', description: '', videoUrl: '', videoDuration: '',
     unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' as Lesson['videoSource'],
