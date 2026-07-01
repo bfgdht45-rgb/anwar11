@@ -433,12 +433,17 @@ function MyAssignments() {
 function MyExams() {
   const { exams, addExam, deleteExam } = useStore();
   const [showAdd, setShowAdd] = useState(false);
+  const [previewExam, setPreviewExam] = useState<Exam | null>(null);
   const [newExam, setNewExam] = useState({ title: '', description: '', duration: 30 });
   const [htmlContent, setHtmlContent] = useState('');
 
   const handleAdd = () => {
-    if (!newExam.title || !htmlContent) {
-      toast.error('أدخل العنوان وكود HTML');
+    if (!newExam.title) {
+      toast.error('أدخل عنوان الامتحان');
+      return;
+    }
+    if (!htmlContent) {
+      toast.error('أدخل كود HTML');
       return;
     }
     addExam({
@@ -478,19 +483,51 @@ function MyExams() {
                     {e.isHtmlExam && <Badge>HTML</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">{e.description}</p>
-                  <div className="flex gap-2 text-xs">
+                  <div className="flex gap-2 text-xs mb-3">
                     <Badge variant="secondary">⏱ {e.durationMinutes} د</Badge>
                     <Badge variant="secondary">🎯 {e.passingScore}%</Badge>
                   </div>
-                  <Button size="sm" variant="ghost" className="w-full mt-2 text-rose-500" onClick={() => { deleteExam(e.id); toast.success('تم الحذف'); }}>
-                    <Trash2 className="w-4 h-4 ml-1" /> حذف
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setPreviewExam(e)}>
+                      <Eye className="w-4 h-4 ml-1" /> معاينة
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => { deleteExam(e.id); toast.success('تم الحذف'); }}>
+                      <Trash2 className="w-4 h-4 ml-1" /> حذف
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog معاينة الامتحان */}
+      <Dialog open={!!previewExam} onOpenChange={(open) => !open && setPreviewExam(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5 text-amber-600" />
+              {previewExam?.title}
+            </DialogTitle>
+            <DialogDescription>{previewExam?.description}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewExam?.isHtmlExam && previewExam?.htmlContent ? (
+              <iframe
+                srcDoc={previewExam.htmlContent}
+                className="w-full h-[70vh] rounded-lg border"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+                title={previewExam.title}
+              />
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                هذا الامتحان ليس امتحان HTML تفاعلي
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -552,13 +589,25 @@ function StudentResults() {
 }
 
 function StudentQuestions() {
-  const questions = [
-    { id: 'q1', student: 'أحمد محمود', avatar: '🧑‍🎓', question: 'ما الفرق بين النهاية اليمنى واليسرى؟', date: '2026-06-28', answered: false },
-    { id: 'q2', student: 'سارة أحمد', avatar: '👩‍🎓', question: 'كيف نحل معادلة من الدرجة الثانية؟', date: '2026-06-27', answered: true },
-  ];
+  const [questions, setQuestions] = useState([
+    { id: 'q1', student: 'أحمد محمود', avatar: '🧑‍🎓', question: 'ما الفرق بين النهاية اليمنى واليسرى؟', date: '2026-06-28', answered: false, answer: '' },
+    { id: 'q2', student: 'سارة أحمد', avatar: '👩‍🎓', question: 'كيف نحل معادلة من الدرجة الثانية؟', date: '2026-06-27', answered: true, answer: 'نستخدم القانون العام: x = (-b ± √(b²-4ac)) / 2a' },
+  ]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  const handleAnswer = (id: string) => {
+    if (!answers[id]?.trim()) {
+      toast.error('اكتب الرد أولاً');
+      return;
+    }
+    setQuestions(qs => qs.map(q => q.id === id ? { ...q, answered: true, answer: answers[id] } : q));
+    setAnswers({ ...answers, [id]: '' });
+    toast.success('تم إرسال الرد');
+  };
+
   return (
     <Card>
-      <CardHeader><CardTitle>أسئلة الطلاب</CardTitle></CardHeader>
+      <CardHeader><CardTitle>أسئلة الطلاب ({questions.length})</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         {questions.map(q => (
           <div key={q.id} className="p-3 rounded-lg border">
@@ -571,10 +620,20 @@ function StudentQuestions() {
                   <span className="text-xs text-muted-foreground">{q.date}</span>
                 </div>
                 <p className="text-sm mb-3">{q.question}</p>
+                {q.answered && q.answer && (
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 mb-2">
+                    <div className="text-xs text-emerald-600 font-medium mb-1">ردك:</div>
+                    <div className="text-sm">{q.answer}</div>
+                  </div>
+                )}
                 {!q.answered && (
                   <div className="flex gap-2">
-                    <Input placeholder="اكتب ردك..." />
-                    <Button>إرسال</Button>
+                    <Input
+                      placeholder="اكتب ردك..."
+                      value={answers[q.id] || ''}
+                      onChange={e => setAnswers({ ...answers, [q.id]: e.target.value })}
+                    />
+                    <Button onClick={() => handleAnswer(q.id)}>إرسال</Button>
                   </div>
                 )}
               </div>
@@ -587,10 +646,24 @@ function StudentQuestions() {
 }
 
 function TeacherComments() {
-  const { comments } = useStore();
+  const { comments, addComment, currentUser } = useStore();
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+
+  const handleReply = (lessonId: string, commentId: string) => {
+    if (!replyText.trim()) {
+      toast.error('اكتب الرد');
+      return;
+    }
+    addComment(lessonId, `رد على التعليق: ${replyText}`, undefined);
+    setReplyText('');
+    setReplyTo(null);
+    toast.success('تم إرسال الرد');
+  };
+
   return (
     <Card>
-      <CardHeader><CardTitle>التعليقات على دروسي</CardTitle></CardHeader>
+      <CardHeader><CardTitle>التعليقات على دروسي ({comments.length})</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         {comments.map(c => (
           <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg border">
@@ -601,9 +674,24 @@ function TeacherComments() {
                 {c.rating && <Badge variant="secondary">⭐ {c.rating}</Badge>}
                 <span className="text-xs text-muted-foreground">{c.createdAt}</span>
               </div>
-              <p className="text-sm text-muted-foreground">{c.text}</p>
+              <p className="text-sm text-muted-foreground mb-2">{c.text}</p>
+              {replyTo === c.id ? (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="اكتب ردك..."
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    autoFocus
+                  />
+                  <Button size="sm" onClick={() => handleReply(c.lessonId, c.id)}>إرسال</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setReplyTo(null); setReplyText(''); }}>إلغاء</Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => setReplyTo(c.id)}>
+                  <MessageSquare className="w-3.5 h-3.5 ml-1" /> رد
+                </Button>
+              )}
             </div>
-            <Button size="sm" variant="ghost">رد</Button>
           </div>
         ))}
       </CardContent>

@@ -86,6 +86,26 @@ interface AppState {
   // Grades
   addGrade: (grade: typeof demoGrades[number]) => void;
   
+  // Question Bank
+  addQuestion: (question: typeof questionBank[number]) => void;
+  deleteQuestion: (id: string) => void;
+  
+  // Comments management
+  deleteComment: (id: string) => void;
+  
+  // Payments
+  addPayment: (payment: typeof demoPayments[number]) => void;
+  
+  // Certificates
+  addCertificate: (cert: typeof demoCertificates[number]) => void;
+  
+  // Subscriptions - student subscribes
+  subscribeStudent: (subscriptionName: string, amount: number) => void;
+  
+  // Backup
+  exportBackup: () => string;
+  importBackup: (data: string) => boolean;
+  
   // Favorites (student)
   toggleFavorite: (lessonId: string) => void;
   markLessonComplete: (lessonId: string) => void;
@@ -210,6 +230,80 @@ export const useStore = create<AppState>()(
       deleteCoupon: (id) => set(state => ({ coupons: state.coupons.filter(c => c.id !== id) })),
 
       addGrade: (grade) => set(state => ({ grades: [...state.grades, grade] })),
+
+      addQuestion: (question) => set(state => ({ questionBank: [...state.questionBank, question] })),
+      deleteQuestion: (id) => set(state => ({ questionBank: state.questionBank.filter(q => q.id !== id) })),
+
+      deleteComment: (id) => set(state => ({ comments: state.comments.filter(c => c.id !== id) })),
+
+      addPayment: (payment) => set(state => ({ payments: [...state.payments, payment] })),
+      addCertificate: (cert) => set(state => ({ certificates: [...state.certificates, cert] })),
+
+      subscribeStudent: (subscriptionName, amount) => {
+        const user = get().currentUser;
+        if (!user || user.role !== 'student') return;
+        const payment = {
+          id: `pay-${Date.now()}`,
+          studentId: user.id,
+          studentName: user.name,
+          amount,
+          subscriptionName,
+          method: 'card' as const,
+          status: 'completed' as const,
+          date: new Date().toISOString().split('T')[0],
+        };
+        const invoice = {
+          id: `inv-${Date.now()}`,
+          studentId: user.id,
+          amount,
+          subscriptionName,
+          date: new Date().toISOString().split('T')[0],
+          status: 'paid' as const,
+        };
+        const expiry = new Date();
+        expiry.setFullYear(expiry.getFullYear() + 1);
+        set(state => ({
+          payments: [...state.payments, payment],
+          invoices: [...state.invoices, invoice],
+        }));
+        get().updateUser(user.id, {
+          subscriptionStatus: 'active',
+          subscriptionExpiry: expiry.toISOString().split('T')[0],
+        });
+      },
+
+      exportBackup: () => {
+        const s = get();
+        return JSON.stringify({
+          users: s.users, lessons: s.lessons, assignments: s.assignments,
+          exams: s.exams, notifications: s.notifications, comments: s.comments,
+          coupons: s.coupons, payments: s.payments, invoices: s.invoices,
+          certificates: s.certificates, grades: s.grades, questionBank: s.questionBank,
+        }, null, 2);
+      },
+
+      importBackup: (data) => {
+        try {
+          const parsed = JSON.parse(data);
+          set({
+            users: parsed.users || demoUsers,
+            lessons: parsed.lessons || demoLessons,
+            assignments: parsed.assignments || demoAssignments,
+            exams: parsed.exams || demoExams,
+            notifications: parsed.notifications || demoNotifications,
+            comments: parsed.comments || demoComments,
+            coupons: parsed.coupons || demoCoupons,
+            payments: parsed.payments || demoPayments,
+            invoices: parsed.invoices || demoInvoices,
+            certificates: parsed.certificates || demoCertificates,
+            grades: parsed.grades || demoGrades,
+            questionBank: parsed.questionBank || questionBank,
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      },
 
       toggleFavorite: (lessonId) => {
         const user = get().currentUser;

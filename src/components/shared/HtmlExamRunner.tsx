@@ -216,6 +216,11 @@ export function HtmlExamBuilder({ onSave, initialHtml }: { onSave: (html: string
   const [html, setHtml] = useState(initialHtml || getDefaultHtmlTemplate());
   const [preview, setPreview] = useState(false);
 
+  // حفظ تلقائي على كل تغيير
+  useEffect(() => {
+    onSave(html);
+  }, [html, onSave]);
+
   const handleSave = () => {
     if (!html.trim()) {
       toast.error('الرجاء إدخال كود HTML');

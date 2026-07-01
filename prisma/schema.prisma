@@ -1,14 +1,21 @@
+// ============================================
 // أكاديمية الرياضيات - Prisma Schema
+// ============================================
+// هذا الملف يصف شكل قاعدة البيانات
+// تم الإعداد لـ PostgreSQL (متوافق مع Vercel)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql"  // ✅ تم التغيير من sqlite إلى postgresql
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// نموذج المستخدم (يدعم 3 أنواع: admin, teacher, student)
+// ============================================
 model User {
   id                  String      @id @default(cuid())
   email               String      @unique
@@ -23,12 +30,12 @@ model User {
   lessonsCount        Int?        @default(0)
   totalEarnings       Float?      @default(0)
   specialties         String[]    @default([])
-  stage               String?
-  year                String?
-  subscriptionStatus  String?
+  stage               String?     // middle / high
+  year                String?     // first / second / third
+  subscriptionStatus  String?     // active / expired / pending
   subscriptionExpiry  DateTime?
-  completedLessons    String[]    @default([])
-  favorites           String[]    @default([])
+  completedLessons    String[]    @default([])  // array of lesson IDs
+  favorites           String[]    @default([])  // array of lesson IDs
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -47,6 +54,9 @@ enum UserRole {
   STUDENT
 }
 
+// ============================================
+// الدروس
+// ============================================
 model Lesson {
   id                String        @id @default(cuid())
   title             String
@@ -54,8 +64,8 @@ model Lesson {
   teacherId         String
   unitId            String
   videoUrl          String        @db.Text
-  videoSource       String
-  videoDuration     String
+  videoSource       String        // youtube / vimeo / direct / gdrive / cloudflare / bunny
+  videoDuration     String        // "24:35"
   views             Int           @default(0)
   order             Int           @default(0)
   allowPdfDownload  Boolean       @default(false)
@@ -71,6 +81,9 @@ model Lesson {
   exam              Exam?
 }
 
+// ============================================
+// الملفات (PDF و إضافية)
+// ============================================
 model PDFFile {
   id        String   @id @default(cuid())
   name      String
@@ -90,23 +103,29 @@ model AdditionalFile {
   lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
+// ============================================
+// الوحدات (التنظيم الهرمي: مرحلة > سنة > وحدة > درس)
+// ============================================
 model Unit {
   id          String   @id @default(cuid())
   title       String
   description String?  @db.Text
   order       Int      @default(1)
-  stageId     String
-  yearId      String
+  stageId     String   // middle / high
+  yearId      String   // first / second / third
   color       String   @default("oklch(0.65 0.16 165)")
   lessons     Lesson[]
 }
 
+// ============================================
+// الأسئلة (بنك أسئلة شامل)
+// ============================================
 model Question {
   id              String        @id @default(cuid())
   type            QuestionType
   difficulty      Difficulty    @default(MEDIUM)
   text            String        @db.Text
-  options         String[]      @default([])
+  options         String[]      @default([])  // for MCQ
   correctAnswer   String        @db.Text
   explanation     String?       @db.Text
   points          Int           @default(5)
@@ -124,11 +143,11 @@ model Question {
 }
 
 enum QuestionType {
-  MCQ
-  TRUEFALSE
-  FILL
-  ESSAY
-  IMAGE
+  MCQ         // اختيار من متعدد
+  TRUEFALSE   // صح / خطأ
+  FILL        // أكمل الفراغ
+  ESSAY       // سؤال مقالي
+  IMAGE       // رفع صورة للإجابة
 }
 
 enum Difficulty {
@@ -137,6 +156,9 @@ enum Difficulty {
   HARD
 }
 
+// ============================================
+// الواجبات
+// ============================================
 model Assignment {
   id          String     @id @default(cuid())
   title       String
@@ -152,6 +174,9 @@ model Assignment {
   grades      Grade[]
 }
 
+// ============================================
+// الامتحانات (تشمل HTML التفاعلية)
+// ============================================
 model Exam {
   id              String     @id @default(cuid())
   title           String
@@ -172,10 +197,13 @@ model Exam {
   grades          Grade[]
 }
 
+// ============================================
+// التعليقات
+// ============================================
 model Comment {
   id        String   @id @default(cuid())
   text      String   @db.Text
-  rating    Int?
+  rating    Int?     // 1-5
   userId    String
   lessonId  String
   createdAt DateTime @default(now())
@@ -184,12 +212,15 @@ model Comment {
   lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
+// ============================================
+// الدرجات (للواجبات والامتحانات)
+// ============================================
 model Grade {
   id           String   @id @default(cuid())
   score        Int
   totalScore   Int
   date         DateTime @default(now())
-  itemType     String
+  itemType     String   // assignment / exam
   itemId       String
   title        String
   studentId    String
@@ -202,12 +233,15 @@ model Grade {
   exam         Exam?       @relation(fields: [examId], references: [id])
 }
 
+// ============================================
+// الإشعارات
+// ============================================
 model Notification {
   id        String           @id @default(cuid())
   title     String
   message   String           @db.Text
   type      NotificationType @default(INFO)
-  userId    String?
+  userId    String?  // null = broadcast للكل
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
 
@@ -221,12 +255,15 @@ enum NotificationType {
   ERROR
 }
 
+// ============================================
+// المدفوعات والفواتير
+// ============================================
 model Payment {
   id                String   @id @default(cuid())
   amount            Float
   subscriptionName  String
-  method            String
-  status            String
+  method            String   // card / paypal / vodafone_cash / fawry
+  status            String   // completed / pending / failed
   date              DateTime @default(now())
   couponCode        String?
   studentId         String
@@ -240,12 +277,15 @@ model Invoice {
   amount            Float
   subscriptionName  String
   date              DateTime @default(now())
-  status            String
+  status            String   // paid / unpaid
   studentId         String
 
   student           User     @relation(fields: [studentId], references: [id])
 }
 
+// ============================================
+// الشهادات
+// ============================================
 model Certificate {
   id          String   @id @default(cuid())
   courseName  String
@@ -257,11 +297,14 @@ model Certificate {
   student     User     @relation(fields: [studentId], references: [id])
 }
 
+// ============================================
+// كوبونات الخصم
+// ============================================
 model Coupon {
   id        String   @id @default(cuid())
   code      String   @unique
   discount  Float
-  type      String
+  type      String   // percentage / fixed
   maxUses   Int      @default(100)
   usedCount Int      @default(0)
   expiry    DateTime
