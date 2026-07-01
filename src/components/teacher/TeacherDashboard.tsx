@@ -317,7 +317,7 @@ function AddLesson() {
             </TabsContent>
             <TabsContent value="preview">
               {examHtml ? (
-                <iframe srcDoc={examHtml} className="w-full min-h-[500px] rounded-lg border" sandbox="allow-scripts" title="معاينة" />
+                <iframe srcDoc={examHtml} className="w-full min-h-[500px] rounded-lg border" sandbox="allow-scripts allow-same-origin allow-forms" title="معاينة" />
               ) : (
                 <EmptyState icon={Eye} title="لا توجد معاينة" description="أضف كود HTML أولاً" />
               )}
@@ -543,6 +543,17 @@ function MyExams() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
+            {htmlContent && (
+              <Button variant="outline" onClick={() => {
+                const newWindow = window.open('', '_blank');
+                if (newWindow) {
+                  newWindow.document.write(htmlContent);
+                  newWindow.document.close();
+                }
+              }}>
+                <Eye className="w-4 h-4 ml-2" /> معاينة سريعة
+              </Button>
+            )}
             <Button onClick={handleAdd}>حفظ</Button>
           </DialogFooter>
         </DialogContent>

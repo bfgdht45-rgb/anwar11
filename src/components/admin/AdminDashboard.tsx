@@ -1024,6 +1024,17 @@ function ManageExams() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
+            {examType === 'html' && htmlContent && (
+              <Button variant="outline" onClick={() => {
+                const newWindow = window.open('', '_blank');
+                if (newWindow) {
+                  newWindow.document.write(htmlContent);
+                  newWindow.document.close();
+                }
+              }}>
+                <Eye className="w-4 h-4 ml-2" /> معاينة سريعة
+              </Button>
+            )}
             <Button onClick={handleSave}><Save className="w-4 h-4 ml-2" /> حفظ الامتحان</Button>
           </DialogFooter>
         </DialogContent>

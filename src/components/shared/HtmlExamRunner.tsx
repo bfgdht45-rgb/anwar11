@@ -181,7 +181,7 @@ export default function HtmlExamRunner({ exam, studentId, studentName, onComplet
             ref={iframeRef}
             srcDoc={exam.htmlContent}
             className="w-full min-h-[600px] border-t"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-same-origin allow-forms"
             title="حل الامتحان"
           />
         )}
@@ -204,7 +204,7 @@ export default function HtmlExamRunner({ exam, studentId, studentName, onComplet
         ref={iframeRef}
         srcDoc={exam.htmlContent}
         className="w-full min-h-[800px] rounded-lg border"
-        sandbox="allow-scripts"
+        sandbox="allow-scripts allow-same-origin allow-forms"
         title={exam.title}
       />
     </div>
@@ -248,7 +248,7 @@ export function HtmlExamBuilder({ onSave, initialHtml }: { onSave: (html: string
         <iframe
           srcDoc={html}
           className="w-full min-h-[600px] rounded-lg border"
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-same-origin allow-forms"
           title="معاينة الامتحان"
         />
       ) : (
