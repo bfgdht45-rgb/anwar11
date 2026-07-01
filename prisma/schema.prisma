@@ -216,19 +216,21 @@ model Comment {
 // الدرجات (للواجبات والامتحانات)
 // ============================================
 model Grade {
-  id          String   @id @default(cuid())
-  score       Int
-  totalScore  Int
-  date        DateTime @default(now())
-  itemType    String   // assignment / exam
-  itemId      String
-  title       String
-  studentId   String
-  studentName String
+  id           String   @id @default(cuid())
+  score        Int
+  totalScore   Int
+  date         DateTime @default(now())
+  itemType     String   // assignment / exam
+  itemId       String
+  title        String
+  studentId    String
+  studentName  String
+  assignmentId String?
+  examId       String?
 
-  student     User       @relation(fields: [studentId], references: [id])
-  assignment  Assignment? @relation(fields: [assignmentId], references: [id])
-  exam        Exam?       @relation(fields: [examId], references: [id])
+  student      User        @relation(fields: [studentId], references: [id])
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
+  exam         Exam?       @relation(fields: [examId], references: [id])
 }
 
 // ============================================
