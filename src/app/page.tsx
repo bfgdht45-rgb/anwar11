@@ -10,7 +10,7 @@ import StudentDashboard from '@/components/student/StudentDashboard';
 import LessonPage from '@/components/lesson/LessonPage';
 
 export default function Home() {
-  const { view, currentUser, theme, setView, fetchLessons, fetchExams, fetchUsers, fetchNotifications, fetchStats } = useStore();
+  const { view, currentUser, theme, setView, fetchLessons, fetchExams, fetchUsers, fetchNotifications, fetchStats, fetchUnits } = useStore();
 
   // Apply theme
   useEffect(() => {
@@ -30,7 +30,8 @@ export default function Home() {
     fetchUsers();
     fetchNotifications();
     fetchStats();
-  }, [fetchLessons, fetchExams, fetchUsers, fetchNotifications, fetchStats]);
+    fetchUnits();
+  }, [fetchLessons, fetchExams, fetchUsers, fetchNotifications, fetchStats, fetchUnits]);
 
   // Safety check
   useEffect(() => {

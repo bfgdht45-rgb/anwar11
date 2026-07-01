@@ -22,6 +22,7 @@ interface AppState {
   users: User[];
   lessons: Lesson[];
   exams: Exam[];
+  units: { id: string; title: string; description?: string; stageId: string; yearId: string; order: number; color: string }[];
   notifications: Notification[];
   comments: Comment[];
   coupons: Coupon[];
@@ -57,6 +58,7 @@ interface AppState {
   fetchCoupons: () => Promise<void>;
   fetchPayments: () => Promise<void>;
   fetchStats: () => Promise<void>;
+  fetchUnits: () => Promise<void>;
 
   // Actions - Lessons
   openLesson: (lessonId: string) => void;
@@ -101,6 +103,7 @@ export const useStore = create<AppState>((set, get) => ({
   users: [],
   lessons: [],
   exams: [],
+  units: [],
   notifications: [],
   comments: [],
   coupons: [],
@@ -258,6 +261,16 @@ export const useStore = create<AppState>((set, get) => ({
       set({ stats: data });
     } catch (e) {
       console.error('fetchStats error:', e);
+    }
+  },
+
+  fetchUnits: async () => {
+    try {
+      const res = await fetch('/api/units');
+      const data = await res.json();
+      set({ units: data.units || [] });
+    } catch (e) {
+      console.error('fetchUnits error:', e);
     }
   },
 

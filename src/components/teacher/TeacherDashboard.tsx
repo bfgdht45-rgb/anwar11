@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout, StatCard, EmptyState } from '@/components/shared/DashboardLayout';
 import { HtmlExamBuilder } from '@/components/shared/HtmlExamRunner';
 import { useStore } from '@/lib/store';
@@ -199,15 +199,18 @@ function MyLessons() {
 }
 
 function AddLesson() {
-  const { addLesson, currentUser } = useStore();
+  const { addLesson, currentUser, units } = useStore();
   const [lesson, setLesson] = useState({
     title: '', description: '', videoUrl: '', videoDuration: '',
-    unitId: initialUnits[0].id, videoSource: 'youtube' as Lesson['videoSource'],
+    unitId: '', videoSource: 'youtube' as Lesson['videoSource'],
     allowPdfDownload: true,
   });
   const [pdfs, setPdfs] = useState<{ name: string; url: string }[]>([]);
   const [newPdf, setNewPdf] = useState({ name: '', url: '' });
   const [examHtml, setExamHtml] = useState('');
+
+  // تحديث unitId الافتراضي - باستخدام derived state بدل useEffect
+  const defaultUnitId = lesson.unitId || units[0]?.id || '';
 
   const handleAddPdf = () => {
     if (!newPdf.name || !newPdf.url) return;
@@ -215,30 +218,39 @@ function AddLesson() {
     setNewPdf({ name: '', url: '' });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!lesson.title || !lesson.videoUrl) {
       toast.error('أدخل العنوان ورابط الفيديو');
       return;
     }
-    addLesson({
-      id: `lesson-${Date.now()}`,
-      unitId: lesson.unitId,
+    if (!lesson.unitId && !defaultUnitId) {
+      toast.error('اختر الوحدة');
+      return;
+    }
+    if (!currentUser?.id) {
+      toast.error('يجب تسجيل الدخول كمعلم');
+      return;
+    }
+    const success = await addLesson({
+      unitId: lesson.unitId || defaultUnitId,
+      teacherId: currentUser.id,
       title: lesson.title,
       description: lesson.description,
-      teacherId: currentUser?.id || '',
       videoUrl: lesson.videoUrl,
       videoSource: lesson.videoSource,
       videoDuration: lesson.videoDuration || '00:00',
       pdfs: pdfs.map((p, i) => ({ id: `pdf-${Date.now()}-${i}`, name: p.name, url: p.url, size: '1.2 MB', pages: 10 })),
       additionalFiles: [],
-      views: 0, order: 0,
-      createdAt: new Date().toISOString().split('T')[0],
       allowPdfDownload: lesson.allowPdfDownload,
-    });
-    toast.success('تم إضافة الدرس بنجاح');
-    setLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: initialUnits[0].id, videoSource: 'youtube', allowPdfDownload: true });
-    setPdfs([]);
-    setExamHtml('');
+    } as any);
+    if (success) {
+      toast.success('تم إضافة الدرس بنجاح');
+      setLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', videoSource: 'youtube', allowPdfDownload: true });
+      setPdfs([]);
+      setExamHtml('');
+    } else {
+      toast.error('فشل في إضافة الدرس');
+    }
   };
 
   return (
@@ -251,9 +263,12 @@ function AddLesson() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>الوحدة</Label>
-              <Select value={lesson.unitId} onValueChange={v => setLesson({ ...lesson, unitId: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{initialUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}</SelectContent>
+              <Select value={lesson.unitId || defaultUnitId} onValueChange={v => setLesson({ ...lesson, unitId: v })}>
+                <SelectTrigger><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
+                <SelectContent>
+                  {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات</SelectItem>}
+                  {units.map(u => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div>

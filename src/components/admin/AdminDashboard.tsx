@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout, StatCard, EmptyState } from '@/components/shared/DashboardLayout';
 import { HtmlExamBuilder } from '@/components/shared/HtmlExamRunner';
 import { useStore } from '@/lib/store';
@@ -541,36 +541,49 @@ function ManageStudents() {
 
 // ===== Manage Lessons =====
 function ManageLessons() {
-  const { lessons, deleteLesson, addLesson, updateLesson, currentUser, openLesson } = useStore();
+  const { lessons, deleteLesson, addLesson, updateLesson, currentUser, openLesson, units, users } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
+  const teachers = users.filter(u => u.role === 'teacher');
   const [newLesson, setNewLesson] = useState({
     title: '', description: '', videoUrl: '', videoDuration: '',
-    unitId: initialUnits[0].id, allowPdfDownload: true, videoSource: 'youtube' as Lesson['videoSource'],
+    unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' as Lesson['videoSource'],
   });
 
-  const handleAdd = () => {
+  // تحديث unitId و teacherId الافتراضي - باستخدام derived state
+  const defaultUnitId = newLesson.unitId || units[0]?.id || '';
+  const defaultTeacherId = newLesson.teacherId || teachers[0]?.id || '';
+
+  const handleAdd = async () => {
     if (!newLesson.title || !newLesson.videoUrl) {
       toast.error('أدخل العنوان ورابط الفيديو');
       return;
     }
-    addLesson({
-      id: `lesson-${Date.now()}`,
-      unitId: newLesson.unitId,
+    if (!newLesson.unitId && !defaultUnitId) {
+      toast.error('اختر الوحدة');
+      return;
+    }
+    if (!newLesson.teacherId && !defaultTeacherId) {
+      toast.error('اختر المعلم');
+      return;
+    }
+    const success = await addLesson({
+      unitId: newLesson.unitId || defaultUnitId,
+      teacherId: newLesson.teacherId || defaultTeacherId,
       title: newLesson.title,
       description: newLesson.description,
-      teacherId: currentUser?.id || 'teacher-1',
       videoUrl: newLesson.videoUrl,
       videoSource: newLesson.videoSource,
       videoDuration: newLesson.videoDuration || '00:00',
-      pdfs: [], additionalFiles: [],
-      views: 0, order: lessons.length + 1,
-      createdAt: new Date().toISOString().split('T')[0],
       allowPdfDownload: newLesson.allowPdfDownload,
-    });
-    toast.success('تم إضافة الدرس');
-    setShowAdd(false);
-    setNewLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: initialUnits[0].id, allowPdfDownload: true, videoSource: 'youtube' });
+    } as any);
+    if (success) {
+      toast.success('تم إضافة الدرس بنجاح');
+      setShowAdd(false);
+      setNewLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' });
+    } else {
+      toast.error('فشل في إضافة الدرس');
+    }
   };
 
   const handleEdit = () => {
@@ -647,9 +660,22 @@ function ManageLessons() {
               <div><Label>الوصف</Label><Textarea value={newLesson.description} onChange={e => setNewLesson({ ...newLesson, description: e.target.value })} /></div>
               <div>
                 <Label>الوحدة</Label>
-                <Select value={newLesson.unitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{initialUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}</SelectContent>
+                <Select value={newLesson.unitId || defaultUnitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
+                  <SelectTrigger><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
+                  <SelectContent>
+                    {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات - شغل /api/seed</SelectItem>}
+                    {units.map(u => <SelectItem key={u.id} value={u.id}>{u.title} ({u.stageId === 'high' ? 'ثانوي' : 'إعدادي'} - {u.yearId === 'first' ? 'أولى' : u.yearId === 'second' ? 'ثانية' : 'ثالثة'})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>المعلم</Label>
+                <Select value={newLesson.teacherId || defaultTeacherId} onValueChange={v => setNewLesson({ ...newLesson, teacherId: v })}>
+                  <SelectTrigger><SelectValue placeholder="اختر المعلم" /></SelectTrigger>
+                  <SelectContent>
+                    {teachers.length === 0 && <SelectItem value="none" disabled>لا يوجد معلمين</SelectItem>}
+                    {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.avatar} {t.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
