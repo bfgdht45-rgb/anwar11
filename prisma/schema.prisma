@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql"  // ✅ تم التغيير من sqlite إلى postgresql
   url      = env("DATABASE_URL")
 }
 
@@ -30,12 +30,12 @@ model User {
   lessonsCount        Int?        @default(0)
   totalEarnings       Float?      @default(0)
   specialties         String[]    @default([])
-  stage               String?
-  year                String?
-  subscriptionStatus  String?
+  stage               String?     // middle / high
+  year                String?     // first / second / third
+  subscriptionStatus  String?     // active / expired / pending
   subscriptionExpiry  DateTime?
-  completedLessons    String[]    @default([])
-  favorites           String[]    @default([])
+  completedLessons    String[]    @default([])  // array of lesson IDs
+  favorites           String[]    @default([])  // array of lesson IDs
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -64,8 +64,8 @@ model Lesson {
   teacherId         String
   unitId            String
   videoUrl          String        @db.Text
-  videoSource       String
-  videoDuration     String
+  videoSource       String        // youtube / vimeo / direct / gdrive / cloudflare / bunny
+  videoDuration     String        // "24:35"
   views             Int           @default(0)
   order             Int           @default(0)
   allowPdfDownload  Boolean       @default(false)
@@ -104,15 +104,15 @@ model AdditionalFile {
 }
 
 // ============================================
-// الوحدات
+// الوحدات (التنظيم الهرمي: مرحلة > سنة > وحدة > درس)
 // ============================================
 model Unit {
   id          String   @id @default(cuid())
   title       String
   description String?  @db.Text
   order       Int      @default(1)
-  stageId     String
-  yearId      String
+  stageId     String   // middle / high
+  yearId      String   // first / second / third
   color       String   @default("oklch(0.65 0.16 165)")
   lessons     Lesson[]
 }
@@ -125,7 +125,7 @@ model Question {
   type            QuestionType
   difficulty      Difficulty    @default(MEDIUM)
   text            String        @db.Text
-  options         String[]      @default([])
+  options         String[]      @default([])  // for MCQ
   correctAnswer   String        @db.Text
   explanation     String?       @db.Text
   points          Int           @default(5)
@@ -143,11 +143,11 @@ model Question {
 }
 
 enum QuestionType {
-  MCQ
-  TRUEFALSE
-  FILL
-  ESSAY
-  IMAGE
+  MCQ         // اختيار من متعدد
+  TRUEFALSE   // صح / خطأ
+  FILL        // أكمل الفراغ
+  ESSAY       // سؤال مقالي
+  IMAGE       // رفع صورة للإجابة
 }
 
 enum Difficulty {
@@ -187,7 +187,7 @@ model Exam {
   showSolution    Boolean    @default(true)
   passingScore    Int        @default(60)
   isHtmlExam      Boolean    @default(false)
-  htmlContent     String?    @db.Text
+  htmlContent     String?    @db.Text  // كود HTML للامتحان التفاعلي
   createdAt       DateTime   @default(now())
 
   lesson          Lesson?    @relation
@@ -201,7 +201,7 @@ model Exam {
 model Comment {
   id        String   @id @default(cuid())
   text      String   @db.Text
-  rating    Int?
+  rating    Int?     // 1-5
   userId    String
   lessonId  String
   createdAt DateTime @default(now())
@@ -211,14 +211,14 @@ model Comment {
 }
 
 // ============================================
-// الدرجات
+// الدرجات (للواجبات والامتحانات)
 // ============================================
 model Grade {
   id           String   @id @default(cuid())
   score        Int
   totalScore   Int
   date         DateTime @default(now())
-  itemType     String
+  itemType     String   // assignment / exam
   itemId       String
   title        String
   studentId    String
@@ -239,7 +239,7 @@ model Notification {
   title     String
   message   String           @db.Text
   type      NotificationType @default(INFO)
-  userId    String?
+  userId    String?  // null = broadcast للكل
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
 
@@ -260,8 +260,8 @@ model Payment {
   id                String   @id @default(cuid())
   amount            Float
   subscriptionName  String
-  method            String
-  status            String
+  method            String   // card / paypal / vodafone_cash / fawry
+  status            String   // completed / pending / failed
   date              DateTime @default(now())
   couponCode        String?
   studentId         String
@@ -275,7 +275,7 @@ model Invoice {
   amount            Float
   subscriptionName  String
   date              DateTime @default(now())
-  status            String
+  status            String   // paid / unpaid
   studentId         String
 
   student           User     @relation(fields: [studentId], references: [id])
@@ -302,7 +302,7 @@ model Coupon {
   id        String   @id @default(cuid())
   code      String   @unique
   discount  Float
-  type      String
+  type      String   // percentage / fixed
   maxUses   Int      @default(100)
   usedCount Int      @default(0)
   expiry    DateTime
