@@ -71,28 +71,29 @@ export async function GET() {
     `, 'إنشاء الطالب 2');
 
     // ===== الوحدات =====
-    log.push('📚 إنشاء الوحدات...');
+    log.push('📚 إنشاء الوحدات (المنهج الجديد)...');
     const unitsData = [
-      // إعدادي - أولى
-      { id: 'unit-m1-1', title: 'الأعداد النسبية', stageId: 'middle', yearId: 'first', order: 1 },
-      { id: 'unit-m1-2', title: 'الجبر والمعادلات', stageId: 'middle', yearId: 'first', order: 2 },
-      // إعدادي - ثانية
-      { id: 'unit-m2-1', title: 'النسبة والتناسب', stageId: 'middle', yearId: 'second', order: 1 },
-      { id: 'unit-m2-2', title: 'الهندسة', stageId: 'middle', yearId: 'second', order: 2 },
-      // إعدادي - ثالثة
-      { id: 'unit-m3-1', title: 'الإحصاء', stageId: 'middle', yearId: 'third', order: 1 },
-      { id: 'unit-m3-2', title: 'الهندسة الفراغية', stageId: 'middle', yearId: 'third', order: 2 },
-      // ثانوي - أولى
-      { id: 'unit-h1-1', title: 'الجبر', stageId: 'high', yearId: 'first', order: 1 },
-      { id: 'unit-h1-2', title: 'حساب المثلثات', stageId: 'high', yearId: 'first', order: 2 },
-      // ثانوي - ثانية
-      { id: 'unit-h2-1', title: 'التفاضل', stageId: 'high', yearId: 'second', order: 1 },
-      { id: 'unit-h2-2', title: 'الهندسة التحليلية', stageId: 'high', yearId: 'second', order: 2 },
-      { id: 'unit-h2-3', title: 'الاستاتيكا', stageId: 'high', yearId: 'second', order: 3 },
-      // ثانوي - ثالثة
-      { id: 'unit-h3-1', title: 'التكامل', stageId: 'high', yearId: 'third', order: 1 },
-      { id: 'unit-h3-2', title: 'التفاضل المتقدم', stageId: 'high', yearId: 'third', order: 2 },
-      { id: 'unit-h3-3', title: 'الديناميكا', stageId: 'high', yearId: 'third', order: 3 },
+      // أولى إعدادي
+      { id: 'unit-m1-1', title: 'جبر وإحصاء واحتمالات', stageId: 'middle', yearId: 'first', order: 1 },
+      { id: 'unit-m1-2', title: 'هندسة', stageId: 'middle', yearId: 'first', order: 2 },
+      // ثانية إعدادي
+      { id: 'unit-m2-1', title: 'جبر وإحصاء واحتمالات', stageId: 'middle', yearId: 'second', order: 1 },
+      { id: 'unit-m2-2', title: 'هندسة', stageId: 'middle', yearId: 'second', order: 2 },
+      // ثالثة إعدادي
+      { id: 'unit-m3-1', title: 'جبر وإحصاء واحتمالات', stageId: 'middle', yearId: 'third', order: 1 },
+      { id: 'unit-m3-2', title: 'هندسة وحساب مثلثات وهندسة تحليلية', stageId: 'middle', yearId: 'third', order: 2 },
+      // أولى ثانوي
+      { id: 'unit-h1-1', title: 'جبر وحساب مثلثات', stageId: 'high', yearId: 'first', order: 1 },
+      { id: 'unit-h1-2', title: 'هندسة', stageId: 'high', yearId: 'first', order: 2 },
+      { id: 'unit-h1-3', title: 'هندسة تحليلية', stageId: 'high', yearId: 'first', order: 3 },
+      // ثانية ثانوي - رياضيات بحتة
+      { id: 'unit-h2-1', title: 'رياضيات بحتة (جبر - تفاضل - تكامل - حساب مثلثات)', stageId: 'high', yearId: 'second', order: 1 },
+      // ثانية ثانوي - تطبيقية
+      { id: 'unit-h2-2', title: 'رياضيات تطبيقية (استاتيكا - ديناميكا)', stageId: 'high', yearId: 'second', order: 2 },
+      // ثالثة ثانوي - بحتة
+      { id: 'unit-h3-1', title: 'رياضيات بحتة (جبر - تفاضل - تكامل - هندسة فراغية)', stageId: 'high', yearId: 'third', order: 1 },
+      // ثالثة ثانوي - تطبيقية
+      { id: 'unit-h3-2', title: 'رياضيات تطبيقية (استاتيكا - ديناميكا)', stageId: 'high', yearId: 'third', order: 2 },
     ];
     for (const u of unitsData) {
       await executeSQL(`
@@ -106,7 +107,7 @@ export async function GET() {
     const lesson1Id = 'lesson-001';
     await executeSQL(`
       INSERT INTO "Lesson" ("id", "title", "description", "teacherId", "unitId", "videoUrl", "videoSource", "videoDuration", "views", "order", "allowPdfDownload", "createdAt", "updatedAt")
-      VALUES ('${lesson1Id}', 'مدخل إلى التفاضل - النهايات', 'في هذا الدرس سنتعرف على مفهوم النهايات وأهميتها في حساب التفاضل، وكيفية حساب نهاية الدوال المختلفة.', '${teacher1Id}', 'unit-007', 'https://www.youtube.com/embed/M7lc1UVf-VE', 'youtube', '24:35', 1240, 1, true, NOW(), NOW())
+      VALUES ('${lesson1Id}', 'مدخل إلى التفاضل - النهايات', 'في هذا الدرس سنتعرف على مفهوم النهايات وأهميتها في حساب التفاضل، وكيفية حساب نهاية الدوال المختلفة.', '${teacher1Id}', 'unit-h2-1', 'https://www.youtube.com/embed/M7lc1UVf-VE', 'youtube', '24:35', 1240, 1, true, NOW(), NOW())
     `, 'درس 1');
 
     await executeSQL(`
@@ -127,19 +128,19 @@ export async function GET() {
     const lesson2Id = 'lesson-002';
     await executeSQL(`
       INSERT INTO "Lesson" ("id", "title", "description", "teacherId", "unitId", "videoUrl", "videoSource", "videoDuration", "views", "order", "allowPdfDownload", "createdAt", "updatedAt")
-      VALUES ('${lesson2Id}', 'قواعد الاشتقاق', 'نتعرف في هذا الدرس على قواعد اشتقاق الدوال الأساسية: قاعدة القوة، قاعدة الجمع، قاعدة الضرب، قاعدة القسمة، والقاعدة السلسلية.', '${teacher1Id}', 'unit-007', 'https://www.youtube.com/embed/M7lc1UVf-VE', 'youtube', '32:18', 980, 2, true, NOW(), NOW())
+      VALUES ('${lesson2Id}', 'قواعد الاشتقاق', 'نتعرف في هذا الدرس على قواعد اشتقاق الدوال الأساسية: قاعدة القوة، قاعدة الجمع، قاعدة الضرب، قاعدة القسمة، والقاعدة السلسلية.', '${teacher1Id}', 'unit-h2-1', 'https://www.youtube.com/embed/M7lc1UVf-VE', 'youtube', '32:18', 980, 2, true, NOW(), NOW())
     `, 'درس 2');
 
     const lesson3Id = 'lesson-003';
     await executeSQL(`
       INSERT INTO "Lesson" ("id", "title", "description", "teacherId", "unitId", "videoUrl", "videoSource", "videoDuration", "views", "order", "allowPdfDownload", "createdAt", "updatedAt")
-      VALUES ('${lesson3Id}', 'معادلة المستقيل', 'دراسة معادلة المستقيم بأشكالها المختلفة وحساب الميل والمسافة.', '${teacher1Id}', 'unit-008', 'https://player.vimeo.com/video/76979871', 'vimeo', '28:42', 760, 1, false, NOW(), NOW())
+      VALUES ('${lesson3Id}', 'معادلة المستقيل', 'دراسة معادلة المستقيم بأشكالها المختلفة وحساب الميل والمسافة.', '${teacher1Id}', 'unit-h1-3', 'https://player.vimeo.com/video/76979871', 'vimeo', '28:42', 760, 1, false, NOW(), NOW())
     `, 'درس 3');
 
     const lesson4Id = 'lesson-004';
     await executeSQL(`
       INSERT INTO "Lesson" ("id", "title", "description", "teacherId", "unitId", "videoUrl", "videoSource", "videoDuration", "views", "order", "allowPdfDownload", "createdAt", "updatedAt")
-      VALUES ('${lesson4Id}', 'الأعداد النسبية وعملياتها', 'تعريف الأعداد النسبية وتمثيلها على المستقيم العددي.', '${teacher2Id}', 'unit-001', 'https://www.youtube.com/embed/M7lc1UVf-VE', 'youtube', '20:15', 540, 1, true, NOW(), NOW())
+      VALUES ('${lesson4Id}', 'الأعداد النسبية وعملياتها', 'تعريف الأعداد النسبية وتمثيلها على المستقيم العددي.', '${teacher2Id}', 'unit-m1-1', 'https://www.youtube.com/embed/M7lc1UVf-VE', 'youtube', '20:15', 540, 1, true, NOW(), NOW())
     `, 'درس 4');
 
     // ===== الواجبات =====

@@ -434,17 +434,17 @@ export default function Landing() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
-              { icon: Phone, title: 'اتصل بنا', value: '01000000000', desc: 'من 9 صباحاً حتى 9 مساءً', link: 'tel:01000000000' },
-              { icon: MessageCircle, title: 'واتساب', value: '01000000000', desc: 'راسلنا على واتساب', link: 'https://wa.me/201000000000' },
-              { icon: Mail, title: 'البريد الإلكتروني', value: 'info@math.com', desc: 'نرد خلال 24 ساعة', link: 'mailto:info@math.com' },
-              { icon: MapPin, title: 'العنوان', value: 'القاهرة، مصر', desc: 'جمهورية مصر العربية', link: '#' },
+              { icon: Phone, title: 'اتصل بنا', value: '01011002051', desc: 'من 9 صباحاً حتى 9 مساءً', link: 'tel:01011002051' },
+              { icon: MessageCircle, title: 'واتساب', value: '01011002051', desc: 'راسلنا على واتساب', link: 'https://wa.me/201011002051' },
+              { icon: Mail, title: 'البريد الإلكتروني', value: 'azab33311@gmail.com', desc: 'نرد خلال 24 ساعة', link: 'mailto:azab33311@gmail.com' },
+              { icon: MapPin, title: 'العنوان', value: 'المنصورة - شارع قناة السويس', desc: 'مستر أنور عزب - كبير معلمي الرياضيات', link: '#' },
             ].map(item => (
               <Card key={item.title} className="hover:shadow-lg transition-shadow">
                 <CardContent className="pt-6 text-center">
                   <a href={item.link} target={item.link.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
                     <item.icon className="w-10 h-10 mx-auto mb-3 text-emerald-600" />
                     <h3 className="font-bold mb-1">{item.title}</h3>
-                    <p className="text-emerald-600 font-medium">{item.value}</p>
+                    <p className="text-emerald-600 font-medium text-sm">{item.value}</p>
                     <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
                   </a>
                 </CardContent>
@@ -453,13 +453,13 @@ export default function Landing() {
           </div>
           <div className="flex justify-center gap-3 mt-8">
             <Button variant="outline" size="icon" className="rounded-full" asChild>
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"><Facebook className="w-5 h-5" /></a>
+              <a href="https://www.facebook.com/azab20" target="_blank" rel="noopener noreferrer"><Facebook className="w-5 h-5" /></a>
             </Button>
             <Button variant="outline" size="icon" className="rounded-full" asChild>
-              <a href="https://wa.me/201000000000" target="_blank" rel="noopener noreferrer"><MessageCircle className="w-5 h-5" /></a>
+              <a href="https://wa.me/201011002051" target="_blank" rel="noopener noreferrer"><MessageCircle className="w-5 h-5" /></a>
             </Button>
             <Button variant="outline" size="icon" className="rounded-full" asChild>
-              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer"><Youtube className="w-5 h-5" /></a>
+              <a href="https://www.youtube.com/@azab41" target="_blank" rel="noopener noreferrer"><Youtube className="w-5 h-5" /></a>
             </Button>
           </div>
         </div>
