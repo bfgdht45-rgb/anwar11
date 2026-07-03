@@ -29,9 +29,9 @@ export default function AuthPage() {
   const [regYear, setRegYear] = useState<YearLevel>('first');
   const [regBio, setRegBio] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = login(loginEmail, regPassword || loginPassword);
+    const result = await login(loginEmail, loginPassword);
     if (result.success) {
       toast.success(result.message);
     } else {
@@ -39,13 +39,13 @@ export default function AuthPage() {
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regName || !regEmail || !regPassword) {
       toast.error('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
-    const result = register({
+    const result = await register({
       name: regName,
       email: regEmail,
       password: regPassword,
@@ -62,14 +62,15 @@ export default function AuthPage() {
     }
   };
 
-  const quickLogin = (role: UserRole) => {
+  const quickLogin = async (role: UserRole) => {
     const creds = {
       admin: { email: 'admin@math.com', password: 'admin123' },
       teacher: { email: 'teacher@math.com', password: 'teacher123' },
       student: { email: 'student@math.com', password: 'student123' },
     }[role];
-    const result = login(creds.email, creds.password);
+    const result = await login(creds.email, creds.password);
     if (result.success) toast.success(result.message);
+    else toast.error(result.message);
   };
 
   return (
