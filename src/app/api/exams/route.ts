@@ -1,59 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/exams
 export async function GET() {
   try {
-    const exams = await db.exam.findMany({
-      include: {
-        questions: true,
-        lesson: { select: { id: true, title: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return NextResponse.json({ exams });
+    const exams = await db.$queryRawUnsafe(`SELECT * FROM "Exam" ORDER BY "createdAt" DESC`) as any[];
+
+    const examsWithQuestions = await Promise.all((exams || []).map(async (e: any) => {
+      const questions = await db.$queryRawUnsafe(`SELECT * FROM "Question" WHERE "examId" = '${e.id}'`) as any[];
+      return { ...e, questions };
+    }));
+
+    return NextResponse.json({ exams: examsWithQuestions });
   } catch (error) {
     console.error('GET /api/exams error:', error);
     return NextResponse.json({ error: 'فشل في جلب الامتحانات' }, { status: 500 });
   }
 }
 
-// POST /api/exams
-export async function POST(request: NextRequest) {
+export async function POST(request: any) {
   try {
     const body = await request.json();
+    const id = `exam-${Date.now()}`;
+    const escapedHtml = (body.htmlContent || '').replace(/'/g, "''");
 
-    const exam = await db.exam.create({
-      data: {
-        title: body.title,
-        description: body.description || '',
-        durationMinutes: body.durationMinutes || 30,
-        preventBack: body.preventBack ?? true,
-        randomOrder: body.randomOrder ?? false,
-        showGrade: body.showGrade ?? true,
-        showSolution: body.showSolution ?? true,
-        passingScore: body.passingScore ?? 60,
-        isHtmlExam: body.isHtmlExam ?? false,
-        htmlContent: body.htmlContent,
-        lessonId: body.lessonId || null,
-        questions: body.questions?.length ? {
-          create: body.questions.map((q: any) => ({
-            type: q.type || 'MCQ',
-            difficulty: q.difficulty || 'MEDIUM',
-            text: q.text,
-            options: q.options || [],
-            correctAnswer: q.correctAnswer,
-            explanation: q.explanation,
-            points: q.points || 5,
-          }))
-        } : undefined,
-      },
-      include: { questions: true },
-    });
+    await db.$executeRawUnsafe(`
+      INSERT INTO "Exam" ("id", "title", "description", "durationMinutes", "preventBack", "randomOrder", "showGrade", "showSolution", "passingScore", "isHtmlExam", "htmlContent", "createdAt")
+      VALUES ('${id}', '${body.title.replace(/'/g, "''")}', '${(body.description || '').replace(/'/g, "''")}', ${body.durationMinutes || 30}, true, false, true, true, ${body.passingScore || 60}, ${body.isHtmlExam ?? true}, '${escapedHtml}', NOW())
+    `);
 
-    return NextResponse.json({ exam }, { status: 201 });
-  } catch (error) {
+    return NextResponse.json({ exam: { id, ...body } }, { status: 201 });
+  } catch (error: any) {
     console.error('POST /api/exams error:', error);
-    return NextResponse.json({ error: 'فشل في إنشاء الامتحان' }, { status: 500 });
+    return NextResponse.json({ error: 'فشل في إنشاء الامتحان: ' + error.message }, { status: 500 });
   }
 }

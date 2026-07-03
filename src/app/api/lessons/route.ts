@@ -1,45 +1,87 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { Prisma } from '@prisma/client';
 
-// GET /api/lessons - جلب كل الدروس
-export async function GET(request: NextRequest) {
+// GET /api/lessons
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const teacherId = searchParams.get('teacherId');
-    const unitId = searchParams.get('unitId');
+    const lessons = await db.$queryRawUnsafe(`
+      SELECT l.*,
+             u.id as "teacherId", u.name as "teacherName", u.avatar as "teacherAvatar", u.bio as "teacherBio", u.rating as "teacherRating", u."studentsCount" as "teacherStudentsCount", u."lessonsCount" as "teacherLessonsCount", u.specialties as "teacherSpecialties",
+             un.id as "unitId", un.title as "unitTitle", un."stageId", un."yearId"
+      FROM "Lesson" l
+      LEFT JOIN "User" u ON l."teacherId" = u.id
+      LEFT JOIN "Unit" un ON l."unitId" = un.id
+      ORDER BY l."order" ASC
+    `) as any[];
 
-    const where: Prisma.LessonWhereInput = {};
-    if (teacherId) where.teacherId = teacherId;
-    if (unitId) where.unitId = unitId;
+    // جلب PDFs والملفات الإضافية لكل درس
+    const lessonsWithRelations = await Promise.all((lessons || []).map(async (l: any) => {
+      const pdfs = await db.$queryRawUnsafe(`SELECT * FROM "PDFFile" WHERE "lessonId" = '${l.id}'`) as any[];
+      const additionalFiles = await db.$queryRawUnsafe(`SELECT * FROM "AdditionalFile" WHERE "lessonId" = '${l.id}'`) as any[];
+      const comments = await db.$queryRawUnsafe(`
+        SELECT c.*, u.name as "userName", u.avatar as "userAvatar"
+        FROM "Comment" c
+        LEFT JOIN "User" u ON c."userId" = u.id
+        WHERE c."lessonId" = '${l.id}'
+        ORDER BY c."createdAt" DESC
+      `) as any[];
 
-    const lessons = await db.lesson.findMany({
-      where,
-      include: {
-        teacher: { select: { id: true, name: true, avatar: true, bio: true, rating: true, studentsCount: true, lessonsCount: true, specialties: true } },
-        unit: true,
-        pdfs: true,
-        additionalFiles: true,
-        assignment: { include: { questions: true } },
-        exam: { include: { questions: true } },
-        comments: { include: { user: { select: { id: true, name: true, avatar: true } } }, orderBy: { createdAt: 'desc' } },
-      },
-      orderBy: { order: 'asc' },
-    });
+      // جلب الواجب
+      let assignment = null;
+      const assignments = await db.$queryRawUnsafe(`SELECT * FROM "Assignment" WHERE "lessonId" = '${l.id}' LIMIT 1`) as any[];
+      if (assignments[0]) {
+        const questions = await db.$queryRawUnsafe(`SELECT * FROM "Question" WHERE "assignmentId" = '${assignments[0].id}'`) as any[];
+        assignment = { ...assignments[0], questions };
+      }
 
-    return NextResponse.json({ lessons });
-  } catch (error) {
+      // جلب الامتحان
+      let exam = null;
+      const exams = await db.$queryRawUnsafe(`SELECT * FROM "Exam" WHERE "lessonId" = '${l.id}' LIMIT 1`) as any[];
+      if (exams[0]) {
+        const questions = await db.$queryRawUnsafe(`SELECT * FROM "Question" WHERE "examId" = '${exams[0].id}'`) as any[];
+        exam = { ...exams[0], questions };
+      }
+
+      return {
+        ...l,
+        teacher: {
+          id: l.teacherId,
+          name: l.teacherName,
+          avatar: l.teacherAvatar,
+          bio: l.teacherBio,
+          rating: l.teacherRating,
+          studentsCount: l.teacherStudentsCount,
+          lessonsCount: l.teacherLessonsCount,
+          specialties: l.teacherSpecialties,
+        },
+        unit: {
+          id: l.unitId,
+          title: l.unitTitle,
+          stageId: l.stageId,
+          yearId: l.yearId,
+        },
+        pdfs,
+        additionalFiles,
+        comments,
+        assignment,
+        exam,
+      };
+    }));
+
+    return NextResponse.json({ lessons: lessonsWithRelations });
+  } catch (error: any) {
     console.error('GET /api/lessons error:', error);
-    return NextResponse.json({ error: 'فشل في جلب الدروس' }, { status: 500 });
+    return NextResponse.json({ error: 'فشل في جلب الدروس: ' + error.message }, { status: 500 });
   }
 }
 
-// POST /api/lessons - إنشاء درس جديد
-export async function POST(request: NextRequest) {
+// POST /api/lessons
+export async function POST(request: any) {
   try {
     const body = await request.json();
+    const id = `lesson-${Date.now()}`;
 
-    // تحويل رابط YouTube تلقائياً إلى embed
+    // تحويل رابط YouTube
     let videoUrl = body.videoUrl || '';
     if (body.videoSource === 'youtube' && videoUrl && !videoUrl.includes('/embed/')) {
       const watchMatch = videoUrl.match(/[?&]v=([^&]+)/);
@@ -51,109 +93,56 @@ export async function POST(request: NextRequest) {
     } else if (body.videoSource === 'vimeo' && videoUrl && !videoUrl.includes('player.vimeo.com')) {
       const match = videoUrl.match(/vimeo\.com\/(\d+)/);
       if (match) videoUrl = `https://player.vimeo.com/video/${match[1]}`;
-    } else if (body.videoSource === 'gdrive' && videoUrl && !videoUrl.includes('/preview')) {
-      const match = videoUrl.match(/\/file\/d\/([^/]+)/);
-      if (match) videoUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
     }
 
-    // إنشاء الدرس مع PDFs والملفات الإضافية
-    const lesson = await db.lesson.create({
-      data: {
-        title: body.title,
-        description: body.description || '',
-        teacherId: body.teacherId,
-        unitId: body.unitId,
-        videoUrl,
-        videoSource: body.videoSource || 'youtube',
-        videoDuration: body.videoDuration || '00:00',
-        order: body.order || 0,
-        allowPdfDownload: body.allowPdfDownload ?? false,
-        pdfs: body.pdfs?.length ? {
-          create: body.pdfs.map((p: any) => ({
-            name: p.name,
-            url: p.url,
-            size: p.size || '1 MB',
-            pages: p.pages || 1,
-          }))
-        } : undefined,
-        additionalFiles: body.additionalFiles?.length ? {
-          create: body.additionalFiles.map((f: any) => ({
-            name: f.name,
-            url: f.url,
-            type: f.type || 'file',
-          }))
-        } : undefined,
-      },
-      include: {
-        pdfs: true,
-        additionalFiles: true,
-        teacher: { select: { id: true, name: true, avatar: true, bio: true, rating: true, studentsCount: true, lessonsCount: true, specialties: true } },
-        unit: true,
-      },
-    });
+    await db.$executeRawUnsafe(`
+      INSERT INTO "Lesson" ("id", "title", "description", "teacherId", "unitId", "videoUrl", "videoSource", "videoDuration", "views", "order", "allowPdfDownload", "createdAt", "updatedAt")
+      VALUES ('${id}', '${body.title.replace(/'/g, "''")}', '${(body.description || '').replace(/'/g, "''")}', '${body.teacherId}', '${body.unitId}', '${videoUrl}', '${body.videoSource || 'youtube'}', '${body.videoDuration || '00:00'}', 0, 0, ${body.allowPdfDownload ?? false}, NOW(), NOW())
+    `);
+
+    // إضافة PDFs
+    if (body.pdfs?.length) {
+      for (const p of body.pdfs) {
+        await db.$executeRawUnsafe(`
+          INSERT INTO "PDFFile" ("id", "name", "url", "size", "pages", "lessonId")
+          VALUES ('pdf-${Date.now()}-${Math.random()}', '${p.name.replace(/'/g, "''")}', '${p.url}', '${p.size || '1 MB'}', ${p.pages || 1}, '${id}')
+        `);
+      }
+    }
+
+    // إضافة ملفات إضافية
+    if (body.additionalFiles?.length) {
+      for (const f of body.additionalFiles) {
+        await db.$executeRawUnsafe(`
+          INSERT INTO "AdditionalFile" ("id", "name", "url", "type", "lessonId")
+          VALUES ('file-${Date.now()}-${Math.random()}', '${f.name.replace(/'/g, "''")}', '${f.url}', '${f.type || 'file'}', '${id}')
+        `);
+      }
+    }
 
     // إنشاء واجب لو فيه أسئلة
     if (body.assignment?.questions?.length) {
-      const assignment = await db.assignment.create({
-        data: {
-          title: body.assignment.title || `واجب: ${body.title}`,
-          description: body.assignment.description || '',
-          totalPoints: body.assignment.totalPoints || 20,
-          autoGrade: true,
-          lessonId: lesson.id,
-          questions: {
-            create: body.assignment.questions.map((q: any) => ({
-              type: q.type || 'MCQ',
-              difficulty: q.difficulty || 'MEDIUM',
-              text: q.text,
-              options: q.options || [],
-              correctAnswer: q.correctAnswer,
-              explanation: q.explanation,
-              points: q.points || 5,
-            })),
-          },
-        },
-      });
-      await db.lesson.update({ where: { id: lesson.id }, data: { assignmentId: assignment.id } });
+      const assignId = `assign-${Date.now()}`;
+      await db.$executeRawUnsafe(`
+        INSERT INTO "Assignment" ("id", "title", "description", "totalPoints", "autoGrade", "lessonId", "createdAt")
+        VALUES ('${assignId}', '${body.assignment.title || `واجب: ${body.title}`}'.replace(/'/g, "''"), '${(body.assignment.description || '').replace(/'/g, "''")}', ${body.assignment.totalPoints || 20}, true, '${id}', NOW())
+      `);
+      await db.$executeRawUnsafe(`UPDATE "Lesson" SET "updatedAt" = NOW() WHERE id = '${id}'`);
     }
 
     // إنشاء امتحان HTML لو فيه htmlContent
     if (body.exam?.htmlContent) {
-      const exam = await db.exam.create({
-        data: {
-          title: body.exam.title || `امتحان: ${body.title}`,
-          description: body.exam.description || '',
-          durationMinutes: body.exam.durationMinutes || 30,
-          preventBack: body.exam.preventBack ?? true,
-          randomOrder: body.exam.randomOrder ?? false,
-          showGrade: body.exam.showGrade ?? true,
-          showSolution: body.exam.showSolution ?? true,
-          passingScore: body.exam.passingScore ?? 60,
-          isHtmlExam: true,
-          htmlContent: body.exam.htmlContent,
-          lessonId: lesson.id,
-        },
-      });
-      await db.lesson.update({ where: { id: lesson.id }, data: { examId: exam.id } });
+      const examId = `exam-${Date.now()}`;
+      const escapedHtml = body.exam.htmlContent.replace(/'/g, "''");
+      await db.$executeRawUnsafe(`
+        INSERT INTO "Exam" ("id", "title", "description", "durationMinutes", "preventBack", "randomOrder", "showGrade", "showSolution", "passingScore", "isHtmlExam", "htmlContent", "lessonId", "createdAt")
+        VALUES ('${examId}', '${body.exam.title || `امتحان: ${body.title}`}'.replace(/'/g, "''"), '${(body.exam.description || '').replace(/'/g, "''")}', ${body.exam.durationMinutes || 30}, true, false, true, true, ${body.exam.passingScore || 60}, true, '${escapedHtml}', '${id}', NOW())
+      `);
     }
 
-    // إعادة جلب الدرس بكل العلاقات
-    const fullLesson = await db.lesson.findUnique({
-      where: { id: lesson.id },
-      include: {
-        teacher: { select: { id: true, name: true, avatar: true, bio: true, rating: true, studentsCount: true, lessonsCount: true, specialties: true } },
-        unit: true,
-        pdfs: true,
-        additionalFiles: true,
-        assignment: { include: { questions: true } },
-        exam: { include: { questions: true } },
-        comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
-      },
-    });
-
-    return NextResponse.json({ lesson: fullLesson }, { status: 201 });
-  } catch (error) {
+    return NextResponse.json({ lesson: { id, ...body } }, { status: 201 });
+  } catch (error: any) {
     console.error('POST /api/lessons error:', error);
-    return NextResponse.json({ error: 'فشل في إنشاء الدرس: ' + (error instanceof Error ? error.message : '') }, { status: 500 });
+    return NextResponse.json({ error: 'فشل في إنشاء الدرس: ' + error.message }, { status: 500 });
   }
 }

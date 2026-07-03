@@ -3,9 +3,7 @@ import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    const units = await db.unit.findMany({
-      orderBy: [{ stageId: 'asc' }, { yearId: 'asc' }, { order: 'asc' }],
-    });
+    const units = await db.$queryRawUnsafe(`SELECT * FROM "Unit" ORDER BY "stageId" ASC, "yearId" ASC, "order" ASC`) as any[];
     return NextResponse.json({ units });
   } catch (error) {
     console.error('GET /api/units error:', error);
