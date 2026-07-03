@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
-    const where: any = {};
-    if (studentId) where.studentId = studentId;
-
-    const grades = await db.grade.findMany({ where, orderBy: { date: 'desc' } });
-    return NextResponse.json({ grades });
+    let sql = `SELECT * FROM "Grade"`;
+    const params: any[] = [];
+    if (studentId) { sql += ` WHERE "studentId" = $1`; params.push(studentId); }
+    sql += ` ORDER BY date DESC`;
+    const result = await query(sql, params);
+    return NextResponse.json({ grades: result.rows });
   } catch (error) {
     return NextResponse.json({ error: 'فشل في جلب الدرجات' }, { status: 500 });
   }
@@ -18,20 +19,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const grade = await db.grade.create({
-      data: {
-        score: body.score,
-        totalScore: body.totalScore,
-        itemType: body.itemType,
-        itemId: body.itemId,
-        title: body.title,
-        studentId: body.studentId,
-        studentName: body.studentName,
-        assignmentId: body.assignmentId,
-        examId: body.examId,
-      },
-    });
-    return NextResponse.json({ grade }, { status: 201 });
+    const id = `grade-${Date.now()}`;
+    await query(
+      `INSERT INTO "Grade" ("id", "score", "totalScore", "date", "itemType", "itemId", "title", "studentId", "studentName", "assignmentId", "examId") VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10)`,
+      [id, body.score, body.totalScore, body.itemType, body.itemId, body.title, body.studentId, body.studentName, body.assignmentId || null, body.examId || null]
+    );
+    return NextResponse.json({ grade: { id, ...body } }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'فشل في حفظ الدرجة' }, { status: 500 });
   }

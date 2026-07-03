@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET() {
   try {
-    const units = await db.$queryRawUnsafe(`SELECT * FROM "Unit" ORDER BY "stageId" ASC, "yearId" ASC, "order" ASC`) as any[];
-    return NextResponse.json({ units });
+    const result = await query(`SELECT * FROM "Unit" ORDER BY "stageId" ASC, "yearId" ASC, "order" ASC`);
+    return NextResponse.json({ units: result.rows });
   } catch (error) {
     console.error('GET /api/units error:', error);
     return NextResponse.json({ error: 'فشل في جلب الوحدات' }, { status: 500 });

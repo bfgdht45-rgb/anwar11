@@ -1,24 +1,27 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET() {
   try {
-    const [totalStudents, totalTeachers, totalLessons, totalExams] = await Promise.all([
-      db.user.count({ where: { role: 'STUDENT' } }),
-      db.user.count({ where: { role: 'TEACHER' } }),
-      db.lesson.count(),
-      db.exam.count(),
+    const [students, teachers, lessons, exams, subs, views, revenue] = await Promise.all([
+      query(`SELECT COUNT(*) as count FROM "User" WHERE role = 'STUDENT'`),
+      query(`SELECT COUNT(*) as count FROM "User" WHERE role = 'TEACHER'`),
+      query(`SELECT COUNT(*) as count FROM "Lesson"`),
+      query(`SELECT COUNT(*) as count FROM "Exam"`),
+      query(`SELECT COUNT(*) as count FROM "User" WHERE "subscriptionStatus" = 'active'`),
+      query(`SELECT COALESCE(SUM(views), 0) as total FROM "Lesson"`),
+      query(`SELECT COALESCE(SUM(amount), 0) as total FROM "Payment"`),
     ]);
 
-    const activeSubscriptions = await db.user.count({ where: { subscriptionStatus: 'active' } });
-    const totalViews = await db.lesson.aggregate({ _sum: { views: true } });
-    const totalPayments = await db.payment.aggregate({ _sum: { amount: true } });
-
     return NextResponse.json({
-      totalStudents, totalTeachers, totalSubscriptions: activeSubscriptions,
-      totalVideos: totalLessons, totalLessons, totalExams,
-      totalVisits: totalViews._sum.views || 0,
-      totalRevenue: totalPayments._sum.amount || 0,
+      totalStudents: parseInt(students.rows[0].count),
+      totalTeachers: parseInt(teachers.rows[0].count),
+      totalSubscriptions: parseInt(subs.rows[0].count),
+      totalVideos: parseInt(lessons.rows[0].count),
+      totalLessons: parseInt(lessons.rows[0].count),
+      totalExams: parseInt(exams.rows[0].count),
+      totalVisits: parseInt(views.rows[0].total),
+      totalRevenue: parseFloat(revenue.rows[0].total),
       monthlyRevenue: [
         { month: 'يناير', revenue: 28500 },
         { month: 'فبراير', revenue: 32100 },
@@ -32,8 +35,7 @@ export async function GET() {
     return NextResponse.json({
       totalStudents: 0, totalTeachers: 0, totalSubscriptions: 0,
       totalVideos: 0, totalLessons: 0, totalExams: 0,
-      totalVisits: 0, totalRevenue: 0,
-      monthlyRevenue: [],
+      totalVisits: 0, totalRevenue: 0, monthlyRevenue: [],
     });
   }
 }

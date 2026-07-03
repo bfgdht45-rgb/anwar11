@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET() {
   try {
-    const coupons = await db.coupon.findMany({ orderBy: { expiry: 'desc' } });
-    return NextResponse.json({ coupons });
+    const result = await query(`SELECT * FROM "Coupon" ORDER BY expiry DESC`);
+    return NextResponse.json({ coupons: result.rows });
   } catch (error) {
     return NextResponse.json({ error: 'فشل في جلب الكوبونات' }, { status: 500 });
   }
@@ -13,17 +13,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const coupon = await db.coupon.create({
-      data: {
-        code: body.code.toUpperCase(),
-        discount: body.discount,
-        type: body.type,
-        maxUses: body.maxUses || 100,
-        expiry: new Date(body.expiry),
-        active: true,
-      },
-    });
-    return NextResponse.json({ coupon }, { status: 201 });
+    const id = `coupon-${Date.now()}`;
+    await query(
+      `INSERT INTO "Coupon" ("id", "code", "discount", "type", "maxUses", "usedCount", "expiry", "active") VALUES ($1, $2, $3, $4, $5, 0, $6, true)`,
+      [id, body.code.toUpperCase(), body.discount, body.type, body.maxUses || 100, new Date(body.expiry)]
+    );
+    return NextResponse.json({ coupon: { id, ...body } }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'فشل في إنشاء الكوبون' }, { status: 500 });
   }
@@ -33,10 +28,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'معرف الكوبون مطلوب' }, { status: 400 });
-    await db.coupon.delete({ where: { id } });
+    if (!id) return NextResponse.json({ error: 'معرف مطلوب' }, { status: 400 });
+    await query(`DELETE FROM "Coupon" WHERE id = $1`, [id]);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'فشل في حذف الكوبون' }, { status: 500 });
+    return NextResponse.json({ error: 'فشل الحذف' }, { status: 500 });
   }
 }

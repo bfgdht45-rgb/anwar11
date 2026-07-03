@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
-    // استخدام raw SQL بدل Prisma model
-    const users = await db.$queryRaw`
-      SELECT id, email, password, name, role, avatar, phone, bio, rating,
-             "studentsCount", "lessonsCount", "totalEarnings", specialties,
-             stage, year, "subscriptionStatus", "subscriptionExpiry",
-             "completedLessons", favorites, "createdAt"
-      FROM "User"
-      WHERE email = ${email.toLowerCase()}
-      LIMIT 1
-    ` as any[];
+    const result = await query(
+      `SELECT id, email, password, name, role, avatar, phone, bio, rating,
+              "studentsCount", "lessonsCount", "totalEarnings", specialties,
+              stage, year, "subscriptionStatus", "subscriptionExpiry",
+              "completedLessons", favorites, "createdAt"
+       FROM "User" WHERE email = $1 LIMIT 1`,
+      [email.toLowerCase()]
+    );
 
-    const user = users[0];
+    const user = result.rows[0];
 
     if (!user || user.password !== password) {
       return NextResponse.json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' }, { status: 401 });

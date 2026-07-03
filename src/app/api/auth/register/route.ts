@@ -1,43 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { UserRole } from '@prisma/client';
+import { query } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const existing = await db.user.findUnique({ where: { email: body.email.toLowerCase() } });
-    if (existing) {
+    // التحقق من عدم وجود المستخدم
+    const existing = await query('SELECT id FROM "User" WHERE email = $1', [body.email.toLowerCase()]);
+    if (existing.rows.length > 0) {
       return NextResponse.json({ error: 'البريد الإلكتروني مستخدم بالفعل' }, { status: 400 });
     }
 
-    const user = await db.user.create({
-      data: {
-        email: body.email.toLowerCase(),
-        password: body.password,
-        name: body.name,
-        role: (body.role?.toUpperCase() || 'STUDENT') as UserRole,
-        avatar: body.role === 'teacher' ? '👨‍🏫' : '🧑‍🎓',
-        phone: body.phone,
-        bio: body.bio,
-        stage: body.stage,
-        year: body.year,
-        subscriptionStatus: body.role === 'student' ? 'pending' : null,
-      },
-    });
+    const id = `user-${Date.now()}`;
+    const role = (body.role || 'student').toUpperCase();
+    const avatar = body.role === 'teacher' ? '👨‍🏫' : '🧑‍🎓';
+    const subStatus = body.role === 'student' ? 'pending' : null;
+
+    await query(
+      `INSERT INTO "User" ("id", "email", "password", "name", "role", "avatar", "phone", "bio", "rating", "studentsCount", "lessonsCount", "totalEarnings", "specialties", "stage", "year", "subscriptionStatus", "completedLessons", "favorites", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 0, 0, 0, $9, $10, $11, $12, ARRAY[]::TEXT[], ARRAY[]::TEXT[], NOW(), NOW())`,
+      [id, body.email.toLowerCase(), body.password, body.name, role, avatar, body.phone || null, body.bio || null,
+       body.specialties || [], body.stage || null, body.year || null, subStatus]
+    );
 
     return NextResponse.json({
       user: {
-        id: user.id, email: user.email, name: user.name,
-        role: user.role.toLowerCase(), avatar: user.avatar,
-        stage: user.stage, year: user.year,
-        subscriptionStatus: user.subscriptionStatus,
-        completedLessons: user.completedLessons, favorites: user.favorites,
-        createdAt: user.createdAt,
+        id, email: body.email, name: body.name, role: body.role, avatar,
+        stage: body.stage, year: body.year, subscriptionStatus: subStatus,
+        completedLessons: [], favorites: [], createdAt: new Date(),
       }
     }, { status: 201 });
   } catch (error) {
     console.error('Register error:', error);
-    return NextResponse.json({ error: 'فشل في إنشاء الحساب' }, { status: 500 });
+    return NextResponse.json({ error: 'فشل في إنشاء الحساب: ' + (error instanceof Error ? error.message : '') }, { status: 500 });
   }
 }

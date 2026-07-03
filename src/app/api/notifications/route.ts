@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const where: any = {
-      OR: userId ? [{ userId }, { userId: null }] : [{ userId: null }],
-    };
-    const notifications = await db.notification.findMany({
-      where, orderBy: { createdAt: 'desc' },
-    });
-    return NextResponse.json({ notifications });
+    let sql = `SELECT * FROM "Notification" WHERE "userId" IS NULL`;
+    const params: any[] = [];
+    if (userId) {
+      sql = `SELECT * FROM "Notification" WHERE "userId" = $1 OR "userId" IS NULL`;
+      params.push(userId);
+    }
+    sql += ` ORDER BY "createdAt" DESC`;
+    const result = await query(sql, params);
+    return NextResponse.json({ notifications: result.rows });
   } catch (error) {
     return NextResponse.json({ error: 'فشل في جلب الإشعارات' }, { status: 500 });
   }
@@ -20,15 +22,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const notification = await db.notification.create({
-      data: {
-        title: body.title,
-        message: body.message,
-        type: (body.type || 'INFO').toUpperCase() as any,
-        userId: body.userId || null,
-      },
-    });
-    return NextResponse.json({ notification }, { status: 201 });
+    const id = `notif-${Date.now()}`;
+    await query(
+      `INSERT INTO "Notification" ("id", "title", "message", "type", "userId", "read", "createdAt") VALUES ($1, $2, $3, $4, $5, false, NOW())`,
+      [id, body.title, body.message, (body.type || 'INFO').toUpperCase(), body.userId || null]
+    );
+    return NextResponse.json({ notification: { id, ...body } }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'فشل في إرسال الإشعار' }, { status: 500 });
   }
@@ -38,12 +37,10 @@ export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'معرف الإشعار مطلوب' }, { status: 400 });
-    const notification = await db.notification.update({
-      where: { id }, data: { read: true },
-    });
-    return NextResponse.json({ notification });
+    if (!id) return NextResponse.json({ error: 'معرف مطلوب' }, { status: 400 });
+    await query(`UPDATE "Notification" SET read = true WHERE id = $1`, [id]);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'فشل في تحديث الإشعار' }, { status: 500 });
+    return NextResponse.json({ error: 'فشل التحديث' }, { status: 500 });
   }
 }
