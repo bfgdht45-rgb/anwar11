@@ -267,4 +267,4 @@ model Coupon {
   expiry    DateTime
   active    Boolean  @default(true)
 }
-إصلاح schema إلى postgresql
+
