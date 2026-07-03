@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/units - جلب كل الوحدات
 export async function GET() {
   try {
     const units = await db.unit.findMany({

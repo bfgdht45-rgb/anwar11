@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/lessons/[id] - جلب درس واحد
+// GET /api/lessons/[id]
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -21,15 +21,10 @@ export async function GET(
       },
     });
 
-    if (!lesson) {
-      return NextResponse.json({ error: 'الدرس غير موجود' }, { status: 404 });
-    }
+    if (!lesson) return NextResponse.json({ error: 'الدرس غير موجود' }, { status: 404 });
 
-    // زيادة عدد المشاهدات
-    await db.lesson.update({
-      where: { id },
-      data: { views: { increment: 1 } },
-    });
+    // زيادة المشاهدات
+    await db.lesson.update({ where: { id }, data: { views: { increment: 1 } } });
 
     return NextResponse.json({ lesson });
   } catch (error) {
@@ -38,7 +33,7 @@ export async function GET(
   }
 }
 
-// PUT /api/lessons/[id] - تحديث درس
+// PUT /api/lessons/[id]
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -47,12 +42,18 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    let videoUrl = body.videoUrl;
+    if (body.videoSource === 'youtube' && videoUrl && !videoUrl.includes('/embed/')) {
+      const watchMatch = videoUrl.match(/[?&]v=([^&]+)/);
+      if (watchMatch) videoUrl = `https://www.youtube.com/embed/${watchMatch[1]}`;
+    }
+
     const lesson = await db.lesson.update({
       where: { id },
       data: {
         title: body.title,
         description: body.description,
-        videoUrl: body.videoUrl,
+        videoUrl,
         videoSource: body.videoSource,
         videoDuration: body.videoDuration,
         allowPdfDownload: body.allowPdfDownload,
@@ -66,7 +67,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/lessons/[id] - حذف درس
+// DELETE /api/lessons/[id]
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

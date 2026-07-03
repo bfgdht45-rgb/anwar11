@@ -10,8 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -19,7 +17,7 @@ import { toast } from 'sonner';
 import {
   LayoutDashboard, BookOpen, Award, CreditCard, FileText, Bell, Trophy,
   Heart, CheckCircle2, Clock, Play, Download, Star, Calendar, TrendingUp,
-  AlertCircle, Upload, MessageSquare
+  AlertCircle
 } from 'lucide-react';
 
 const navItems = [
@@ -370,28 +368,10 @@ function MyAssignments() {
                   />
                 )}
                 {q.type === 'image' && (
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setAnswers({ ...answers, [`${a.id}-${q.id}`]: file.name });
-                          toast.success(`تم اختيار: ${file.name}`);
-                        }
-                      }}
-                    />
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground cursor-pointer hover:bg-muted/50">
-                      <Upload className="w-8 h-8 mx-auto mb-2" />
-                      {answers[`${a.id}-${q.id}`] ? (
-                        <span className="text-emerald-600">✓ {answers[`${a.id}-${q.id}`]}</span>
-                      ) : (
-                        'اسحب صورة هنا أو اضغط للرفع'
-                      )}
-                    </div>
-                  </label>
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground">
+                    <Upload className="w-8 h-8 mx-auto mb-2" />
+                    اسحب صورة هنا أو اضغط للرفع
+                  </div>
                 )}
               </div>
             ))}
@@ -405,10 +385,10 @@ function MyAssignments() {
   );
 }
 
+import { Upload } from 'lucide-react';
+
 function MyExams() {
   const { exams, openLesson } = useStore();
-  const [activeExam, setActiveExam] = useState<typeof exams[number] | null>(null);
-
   return (
     <div className="space-y-4">
       {exams.map(e => (
@@ -437,32 +417,12 @@ function MyExams() {
               {e.showGrade && <Badge variant="secondary">📊 إظهار الدرجة</Badge>}
               {e.showSolution && <Badge variant="secondary">✅ إظهار الحل</Badge>}
             </div>
-            <Button onClick={() => e.lessonId ? openLesson(e.lessonId) : setActiveExam(e)}>
-              {e.isHtmlExam ? 'ابدأ الامتحان التفاعلي' : 'ابدأ الامتحان'}
+            <Button onClick={() => openLesson(e.lessonId || 'lesson-1')}>
+              ابدأ الامتحان
             </Button>
           </CardContent>
         </Card>
       ))}
-
-      {/* Dialog للامتحان التفاعلي بدون درس */}
-      {activeExam?.isHtmlExam && (
-        <Dialog open={!!activeExam} onOpenChange={(open) => !open && setActiveExam(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle>{activeExam.title}</DialogTitle>
-              <DialogDescription>{activeExam.description}</DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-hidden">
-              <iframe
-                srcDoc={activeExam.htmlContent}
-                className="w-full h-[70vh] rounded-lg border"
-                sandbox="allow-scripts allow-same-origin allow-forms"
-                title={activeExam.title}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
@@ -510,30 +470,10 @@ function MyGrades() {
 }
 
 function MySubscription() {
-  const { currentUser, subscribeStudent } = useStore();
-  const [showPayment, setShowPayment] = useState<typeof demoSubscriptions[number] | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [couponCode, setCouponCode] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const { currentUser } = useStore();
   const daysLeft = currentUser?.subscriptionExpiry
     ? Math.ceil((new Date(currentUser.subscriptionExpiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
-
-  const handleSubscribe = (sub: typeof demoSubscriptions[number]) => {
-    setShowPayment(sub);
-  };
-
-  const handlePay = () => {
-    if (!showPayment) return;
-    setProcessing(true);
-    setTimeout(() => {
-      subscribeStudent(showPayment.name, showPayment.price);
-      setProcessing(false);
-      setShowPayment(null);
-      setCouponCode('');
-      toast.success(`تم الاشتراك في ${showPayment.name} بنجاح! 🎉`);
-    }, 1500);
-  };
 
   return (
     <div className="space-y-4">
@@ -577,156 +517,51 @@ function MySubscription() {
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full" onClick={() => handleSubscribe(sub)}>اشترك</Button>
+                <Button className="w-full">اشترك</Button>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
-
-      {/* Dialog الدفع */}
-      <Dialog open={!!showPayment} onOpenChange={(open) => !open && setShowPayment(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إتمام عملية الدفع</DialogTitle>
-            <DialogDescription>
-              {showPayment?.name} - {showPayment?.price} ج.م
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>طريقة الدفع</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="card">💳 بطاقة ائتمانية</SelectItem>
-                  <SelectItem value="paypal">💰 PayPal</SelectItem>
-                  <SelectItem value="vodafone_cash">📱 فودافون كاش</SelectItem>
-                  <SelectItem value="fawry">🏪 فوري</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {paymentMethod === 'card' && (
-              <>
-                <div><Label>رقم البطاقة</Label><Input dir="ltr" placeholder="4242 4242 4242 4242" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>تاريخ الانتهاء</Label><Input dir="ltr" placeholder="MM/YY" /></div>
-                  <div><Label>CVV</Label><Input dir="ltr" placeholder="123" /></div>
-                </div>
-              </>
-            )}
-            {paymentMethod === 'vodafone_cash' && (
-              <div><Label>رقم الهاتف</Label><Input dir="ltr" placeholder="010xxxxxxxx" /></div>
-            )}
-            {paymentMethod === 'paypal' && (
-              <div><Label>البريد الإلكتروني</Label><Input dir="ltr" placeholder="email@example.com" /></div>
-            )}
-            {paymentMethod === 'fawry' && (
-              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm">
-                سيتم إنشاء رقم مرجعي للدفع عبر فوري. اذهب لأقرب منفذ فوري وادفع المبلغ خلال 24 ساعة.
-              </div>
-            )}
-            <div>
-              <Label>كوبون خصم (اختياري)</Label>
-              <Input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="MATH50" />
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <div className="flex justify-between text-sm mb-1">
-                <span>السعر:</span>
-                <span>{showPayment?.price} ج.م</span>
-              </div>
-              {couponCode && <div className="flex justify-between text-sm mb-1 text-emerald-600">
-                <span>خصم:</span>
-                <span>-{(showPayment?.price || 0) * 0.5} ج.م</span>
-              </div>}
-              <div className="flex justify-between font-bold pt-1 border-t">
-                <span>الإجمالي:</span>
-                <span>{couponCode ? (showPayment?.price || 0) * 0.5 : showPayment?.price} ج.م</span>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPayment(null)}>إلغاء</Button>
-            <Button onClick={handlePay} disabled={processing}>
-              {processing ? 'جاري المعالجة...' : `ادفع ${couponCode ? (showPayment?.price || 0) * 0.5 : showPayment?.price} ج.م`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
 function MyInvoices() {
-  const { currentUser, invoices } = useStore();
-  const myInvoices = invoices.filter(i => i.studentId === currentUser?.id);
-
-  const handleDownload = (inv: typeof demoInvoices[number]) => {
-    const content = `
-====================================
-  أكاديمية الرياضيات - فاتورة
-====================================
-
-رقم الفاتورة: ${inv.id}
-التاريخ: ${inv.date}
-الباقة: ${inv.subscriptionName}
-المبلغ: ${inv.amount} ج.م
-الحالة: ${inv.status === 'paid' ? 'مدفوع' : 'غير مدفوع'}
-
-العميل: ${currentUser?.name}
-البريد: ${currentUser?.email}
-
-====================================
-شكراً لاشتراكك معنا!
-    `.trim();
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `invoice-${inv.id}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('تم تحميل الفاتورة');
-  };
-
+  const { currentUser } = useStore();
+  const myInvoices = demoInvoices.filter(i => i.studentId === currentUser?.id);
   return (
     <Card>
-      <CardHeader><CardTitle>الفواتير ({myInvoices.length})</CardTitle></CardHeader>
+      <CardHeader><CardTitle>الفواتير</CardTitle></CardHeader>
       <CardContent>
-        {myInvoices.length === 0 ? (
-          <EmptyState icon={FileText} title="لا توجد فواتير" description="لم تقم بأي عمليات دفع بعد" />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الباقة</TableHead>
-                <TableHead>المبلغ</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>إجراءات</TableHead>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>الباقة</TableHead>
+              <TableHead>المبلغ</TableHead>
+              <TableHead>التاريخ</TableHead>
+              <TableHead>الحالة</TableHead>
+              <TableHead>إجراءات</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {myInvoices.map(inv => (
+              <TableRow key={inv.id}>
+                <TableCell>{inv.subscriptionName}</TableCell>
+                <TableCell>{inv.amount} ج.م</TableCell>
+                <TableCell>{inv.date}</TableCell>
+                <TableCell>
+                  <Badge variant={inv.status === 'paid' ? 'default' : 'destructive'}>
+                    {inv.status === 'paid' ? 'مدفوع' : 'غير مدفوع'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Button size="sm" variant="ghost"><Download className="w-4 h-4 ml-1" /> تحميل</Button>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {myInvoices.map(inv => (
-                <TableRow key={inv.id}>
-                  <TableCell>{inv.subscriptionName}</TableCell>
-                  <TableCell>{inv.amount} ج.م</TableCell>
-                  <TableCell>{inv.date}</TableCell>
-                  <TableCell>
-                    <Badge variant={inv.status === 'paid' ? 'default' : 'destructive'}>
-                      {inv.status === 'paid' ? 'مدفوع' : 'غير مدفوع'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="ghost" onClick={() => handleDownload(inv)}>
-                      <Download className="w-4 h-4 ml-1" /> تحميل
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -735,42 +570,6 @@ function MyInvoices() {
 function MyCertificates() {
   const { currentUser, certificates } = useStore();
   const myCerts = certificates.filter(c => c.studentId === currentUser?.id);
-
-  const handleDownload = (cert: typeof demoCertificates[number]) => {
-    const content = `
-╔══════════════════════════════════════════╗
-║                                          ║
-║       شهادة إتمام معتمدة                 ║
-║                                          ║
-║       أكاديمية الرياضيات                  ║
-║                                          ║
-╚══════════════════════════════════════════╝
-
-تشهد أكاديمية الرياضيات بأن الطالب:
-
-  ${cert.studentName}
-
-قد أتم بنجاح دورة:
-
-  ${cert.courseName}
-
-بالتقدير: ${cert.grade}%
-
-تاريخ الإصدار: ${cert.issueDate}
-
-رقم الشهادة: ${cert.id}
-
-====================================
-    `.trim();
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `certificate-${cert.id}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('تم تحميل الشهادة');
-  };
 
   return (
     <div className="grid md:grid-cols-2 gap-4">
@@ -784,7 +583,7 @@ function MyCertificates() {
             <div className="font-bold text-lg my-1">{cert.studentName}</div>
             <Badge variant="secondary" className="mt-2">التقدير: {cert.grade}%</Badge>
             <div className="text-xs text-muted-foreground mt-3">تاريخ الإصدار: {cert.issueDate}</div>
-            <Button size="sm" variant="outline" className="mt-3" onClick={() => handleDownload(cert)}>
+            <Button size="sm" variant="outline" className="mt-3">
               <Download className="w-4 h-4 ml-1" /> تحميل الشهادة
             </Button>
           </div>

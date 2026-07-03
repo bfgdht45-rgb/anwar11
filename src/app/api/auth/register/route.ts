@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { UserRole } from '@prisma/client';
 
-// POST /api/auth/register
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // التحقق من عدم وجود المستخدم
-    const existing = await db.user.findUnique({
-      where: { email: body.email.toLowerCase() },
-    });
+    const existing = await db.user.findUnique({ where: { email: body.email.toLowerCase() } });
     if (existing) {
       return NextResponse.json({ error: 'البريد الإلكتروني مستخدم بالفعل' }, { status: 400 });
     }
@@ -32,16 +28,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role.toLowerCase(),
-        avatar: user.avatar,
-        stage: user.stage,
-        year: user.year,
+        id: user.id, email: user.email, name: user.name,
+        role: user.role.toLowerCase(), avatar: user.avatar,
+        stage: user.stage, year: user.year,
         subscriptionStatus: user.subscriptionStatus,
-        completedLessons: user.completedLessons,
-        favorites: user.favorites,
+        completedLessons: user.completedLessons, favorites: user.favorites,
         createdAt: user.createdAt,
       }
     }, { status: 201 });

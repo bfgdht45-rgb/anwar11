@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/coupons
 export async function GET() {
   try {
     const coupons = await db.coupon.findMany({ orderBy: { expiry: 'desc' } });
@@ -11,7 +10,6 @@ export async function GET() {
   }
 }
 
-// POST /api/coupons
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -31,7 +29,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/coupons?id=xxx
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

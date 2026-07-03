@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/payments
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -16,12 +15,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/payments - تسجيل دفعة جديدة
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // إنشاء الدفعة
     const payment = await db.payment.create({
       data: {
         amount: body.amount,
@@ -34,7 +31,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // إنشاء الفاتورة
     const invoice = await db.invoice.create({
       data: {
         amount: body.amount,
@@ -44,7 +40,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // تحديث اشتراك الطالب
     const expiry = new Date();
     expiry.setFullYear(expiry.getFullYear() + 1);
     await db.user.update({

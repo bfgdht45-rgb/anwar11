@@ -10,9 +10,9 @@ import StudentDashboard from '@/components/student/StudentDashboard';
 import LessonPage from '@/components/lesson/LessonPage';
 
 export default function Home() {
-  const { view, currentUser, theme, setView, fetchLessons, fetchExams, fetchUsers, fetchNotifications, fetchStats, fetchUnits } = useStore();
+  const { view, currentUser, theme, setView } = useStore();
 
-  // Apply theme
+  // Apply theme to <html>
   useEffect(() => {
     if (typeof document !== 'undefined') {
       if (theme === 'dark') {
@@ -23,23 +23,14 @@ export default function Home() {
     }
   }, [theme]);
 
-  // Fetch initial data on mount
-  useEffect(() => {
-    fetchLessons();
-    fetchExams();
-    fetchUsers();
-    fetchNotifications();
-    fetchStats();
-    fetchUnits();
-  }, [fetchLessons, fetchExams, fetchUsers, fetchNotifications, fetchStats, fetchUnits]);
-
-  // Safety check
+  // Hydration safety: if user has view=dashboard but no currentUser, go to landing
   useEffect(() => {
     if ((view === 'admin-dashboard' || view === 'teacher-dashboard' || view === 'student-dashboard' || view === 'lesson-page') && !currentUser) {
       setView('landing');
     }
   }, [view, currentUser, setView]);
 
+  // Render based on view
   if (view === 'landing') return <Landing />;
   if (view === 'login' || view === 'register') return <AuthPage />;
   if (view === 'lesson-page' && currentUser) return <LessonPage />;
@@ -48,5 +39,6 @@ export default function Home() {
   if (view === 'student-dashboard' && currentUser?.role === 'student') return <StudentDashboard />;
   if (view === 'browse') return <Landing />;
 
+  // Fallback
   return <Landing />;
 }

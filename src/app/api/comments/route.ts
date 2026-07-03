@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/comments?lessonId=xxx
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -20,7 +19,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/comments
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -39,7 +37,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/comments
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

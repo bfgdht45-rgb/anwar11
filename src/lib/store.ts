@@ -13,16 +13,24 @@ type View =
   | 'lesson-page'
   | 'browse';
 
+interface Unit {
+  id: string;
+  title: string;
+  description?: string;
+  stageId: string;
+  yearId: string;
+  order: number;
+  color: string;
+}
+
 interface AppState {
-  // Auth
   currentUser: User | null;
   view: View;
 
-  // Data
   users: User[];
   lessons: Lesson[];
   exams: Exam[];
-  units: { id: string; title: string; description?: string; stageId: string; yearId: string; order: number; color: string }[];
+  units: Unit[];
   notifications: Notification[];
   comments: Comment[];
   coupons: Coupon[];
@@ -32,67 +40,51 @@ interface AppState {
   grades: Grade[];
   stats: AppStats | null;
 
-  // Loading states
   loading: boolean;
-
-  // Navigation
   currentLessonId: string | null;
-
-  // Theme
   theme: 'light' | 'dark';
 
-  // Actions - Auth
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (user: Partial<User> & { password: string }) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   setView: (view: View) => void;
   toggleTheme: () => void;
 
-  // Actions - Data fetching
   fetchLessons: () => Promise<void>;
   fetchExams: () => Promise<void>;
   fetchUsers: () => Promise<void>;
+  fetchUnits: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
   fetchComments: (lessonId?: string) => Promise<void>;
   fetchGrades: (studentId?: string) => Promise<void>;
   fetchCoupons: () => Promise<void>;
   fetchPayments: () => Promise<void>;
   fetchStats: () => Promise<void>;
-  fetchUnits: () => Promise<void>;
 
-  // Actions - Lessons
   openLesson: (lessonId: string) => void;
-  addLesson: (lesson: Partial<Lesson> & { title: string; videoUrl: string }) => Promise<boolean>;
-  updateLesson: (lessonId: string, updates: Partial<Lesson>) => Promise<boolean>;
+  addLesson: (lesson: any) => Promise<boolean>;
+  updateLesson: (lessonId: string, updates: any) => Promise<boolean>;
   deleteLesson: (lessonId: string) => Promise<boolean>;
 
-  // Actions - Exams
-  addExam: (exam: Partial<Exam> & { title: string }) => Promise<boolean>;
+  addExam: (exam: any) => Promise<boolean>;
   deleteExam: (examId: string) => Promise<boolean>;
 
-  // Actions - Comments
   addComment: (lessonId: string, text: string, rating?: number) => Promise<void>;
 
-  // Actions - Notifications
-  addNotification: (notification: Partial<Notification> & { title: string; message: string }) => Promise<void>;
+  addNotification: (notification: any) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
 
-  // Actions - Users
-  addUser: (user: Partial<User> & { name: string; email: string }) => Promise<boolean>;
-  updateUser: (userId: string, updates: Partial<User>) => Promise<boolean>;
+  addUser: (user: any) => Promise<boolean>;
+  updateUser: (userId: string, updates: any) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
 
-  // Actions - Coupons
-  addCoupon: (coupon: Partial<Coupon> & { code: string }) => Promise<boolean>;
+  addCoupon: (coupon: any) => Promise<boolean>;
   deleteCoupon: (id: string) => Promise<boolean>;
 
-  // Actions - Grades
-  addGrade: (grade: Partial<Grade> & { score: number; totalScore: number }) => Promise<void>;
+  addGrade: (grade: any) => Promise<void>;
 
-  // Actions - Payments
   subscribeStudent: (subscriptionName: string, amount: number, method?: string, couponCode?: string) => Promise<boolean>;
 
-  // Actions - Favorites
   toggleFavorite: (lessonId: string) => Promise<void>;
   markLessonComplete: (lessonId: string) => Promise<void>;
 }
@@ -148,7 +140,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (typeof window !== 'undefined') {
         localStorage.setItem('currentUser', JSON.stringify(data.user));
       }
-      return { success: true, message: `تم إنشاء الحساب بنجاح. مرحباً ${data.user.name}` };
+      return { success: true, message: `مرحباً ${data.user.name}` };
     } catch {
       return { success: false, message: 'خطأ في الاتصال' };
     }
@@ -156,18 +148,14 @@ export const useStore = create<AppState>((set, get) => ({
 
   logout: () => {
     set({ currentUser: null, view: 'landing' });
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('currentUser');
-    }
+    if (typeof window !== 'undefined') localStorage.removeItem('currentUser');
   },
 
   setView: (view) => set({ view }),
   toggleTheme: () => {
     const newTheme = get().theme === 'light' ? 'dark' : 'light';
     set({ theme: newTheme });
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', newTheme);
-    }
+    if (typeof window !== 'undefined') localStorage.setItem('theme', newTheme);
   },
 
   fetchLessons: async () => {
@@ -175,9 +163,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch('/api/lessons');
       const data = await res.json();
       set({ lessons: data.lessons || [] });
-    } catch (e) {
-      console.error('fetchLessons error:', e);
-    }
+    } catch (e) { console.error('fetchLessons:', e); }
   },
 
   fetchExams: async () => {
@@ -185,9 +171,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch('/api/exams');
       const data = await res.json();
       set({ exams: data.exams || [] });
-    } catch (e) {
-      console.error('fetchExams error:', e);
-    }
+    } catch (e) { console.error('fetchExams:', e); }
   },
 
   fetchUsers: async () => {
@@ -195,9 +179,15 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch('/api/users');
       const data = await res.json();
       set({ users: data.users || [] });
-    } catch (e) {
-      console.error('fetchUsers error:', e);
-    }
+    } catch (e) { console.error('fetchUsers:', e); }
+  },
+
+  fetchUnits: async () => {
+    try {
+      const res = await fetch('/api/units');
+      const data = await res.json();
+      set({ units: data.units || [] });
+    } catch (e) { console.error('fetchUnits:', e); }
   },
 
   fetchNotifications: async () => {
@@ -207,9 +197,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch(url);
       const data = await res.json();
       set({ notifications: data.notifications || [] });
-    } catch (e) {
-      console.error('fetchNotifications error:', e);
-    }
+    } catch (e) { console.error('fetchNotifications:', e); }
   },
 
   fetchComments: async (lessonId) => {
@@ -218,9 +206,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch(url);
       const data = await res.json();
       set({ comments: data.comments || [] });
-    } catch (e) {
-      console.error('fetchComments error:', e);
-    }
+    } catch (e) { console.error('fetchComments:', e); }
   },
 
   fetchGrades: async (studentId) => {
@@ -229,9 +215,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch(url);
       const data = await res.json();
       set({ grades: data.grades || [] });
-    } catch (e) {
-      console.error('fetchGrades error:', e);
-    }
+    } catch (e) { console.error('fetchGrades:', e); }
   },
 
   fetchCoupons: async () => {
@@ -239,9 +223,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch('/api/coupons');
       const data = await res.json();
       set({ coupons: data.coupons || [] });
-    } catch (e) {
-      console.error('fetchCoupons error:', e);
-    }
+    } catch (e) { console.error('fetchCoupons:', e); }
   },
 
   fetchPayments: async () => {
@@ -249,9 +231,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch('/api/payments');
       const data = await res.json();
       set({ payments: data.payments || [] });
-    } catch (e) {
-      console.error('fetchPayments error:', e);
-    }
+    } catch (e) { console.error('fetchPayments:', e); }
   },
 
   fetchStats: async () => {
@@ -259,38 +239,27 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch('/api/stats');
       const data = await res.json();
       set({ stats: data });
-    } catch (e) {
-      console.error('fetchStats error:', e);
-    }
-  },
-
-  fetchUnits: async () => {
-    try {
-      const res = await fetch('/api/units');
-      const data = await res.json();
-      set({ units: data.units || [] });
-    } catch (e) {
-      console.error('fetchUnits error:', e);
-    }
+    } catch (e) { console.error('fetchStats:', e); }
   },
 
   openLesson: (lessonId) => set({ currentLessonId: lessonId, view: 'lesson-page' }),
 
   addLesson: async (lesson) => {
     try {
-      const user = get().currentUser;
       const res = await fetch('/api/lessons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...lesson, teacherId: lesson.teacherId || user?.id }),
+        body: JSON.stringify(lesson),
       });
       const data = await res.json();
       if (data.lesson) {
         await get().fetchLessons();
         return true;
       }
+      console.error('addLesson error:', data.error);
       return false;
-    } catch {
+    } catch (e) {
+      console.error('addLesson error:', e);
       return false;
     }
   },
@@ -304,9 +273,7 @@ export const useStore = create<AppState>((set, get) => ({
       });
       await get().fetchLessons();
       return res.ok;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   deleteLesson: async (lessonId) => {
@@ -314,9 +281,7 @@ export const useStore = create<AppState>((set, get) => ({
       await fetch(`/api/lessons/${lessonId}`, { method: 'DELETE' });
       await get().fetchLessons();
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   addExam: async (exam) => {
@@ -332,9 +297,7 @@ export const useStore = create<AppState>((set, get) => ({
         return true;
       }
       return false;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   deleteExam: async (examId) => {
@@ -342,9 +305,7 @@ export const useStore = create<AppState>((set, get) => ({
       await fetch(`/api/exams/${examId}`, { method: 'DELETE' });
       await get().fetchExams();
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   addComment: async (lessonId, text, rating) => {
@@ -357,9 +318,7 @@ export const useStore = create<AppState>((set, get) => ({
         body: JSON.stringify({ text, rating, userId: user.id, lessonId }),
       });
       await get().fetchComments(lessonId);
-    } catch (e) {
-      console.error('addComment error:', e);
-    }
+    } catch (e) { console.error('addComment:', e); }
   },
 
   addNotification: async (notification) => {
@@ -370,18 +329,14 @@ export const useStore = create<AppState>((set, get) => ({
         body: JSON.stringify(notification),
       });
       await get().fetchNotifications();
-    } catch (e) {
-      console.error('addNotification error:', e);
-    }
+    } catch (e) { console.error('addNotification:', e); }
   },
 
   markNotificationRead: async (id) => {
     try {
       await fetch(`/api/notifications?id=${id}`, { method: 'PUT' });
       await get().fetchNotifications();
-    } catch (e) {
-      console.error('markNotificationRead error:', e);
-    }
+    } catch (e) { console.error('markNotificationRead:', e); }
   },
 
   addUser: async (user) => {
@@ -397,24 +352,34 @@ export const useStore = create<AppState>((set, get) => ({
         return true;
       }
       return false;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   updateUser: async (userId, updates) => {
-    // ملاحظة: نحتاج API route للمستخدمين بالـ PUT - مؤقتاً نحدث الـ state محلياً
-    set(state => ({
-      users: state.users.map(u => u.id === userId ? { ...u, ...updates } : u),
-      currentUser: get().currentUser?.id === userId ? { ...get().currentUser!, ...updates } : get().currentUser,
-    }));
-    return true;
+    try {
+      await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      await get().fetchUsers();
+      // تحديث currentUser لو هو نفسه
+      const user = get().currentUser;
+      if (user?.id === userId) {
+        const updated = { ...user, ...updates };
+        set({ currentUser: updated });
+        if (typeof window !== 'undefined') localStorage.setItem('currentUser', JSON.stringify(updated));
+      }
+      return true;
+    } catch { return false; }
   },
 
   deleteUser: async (userId) => {
-    // مؤقتاً نحذف محلياً - نحتاج DELETE route
-    set(state => ({ users: state.users.filter(u => u.id !== userId) }));
-    return true;
+    try {
+      await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+      await get().fetchUsers();
+      return true;
+    } catch { return false; }
   },
 
   addCoupon: async (coupon) => {
@@ -422,7 +387,7 @@ export const useStore = create<AppState>((set, get) => ({
       const res = await fetch('/api/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...coupon, expiry: coupon.expiry || '2026-12-31' }),
+        body: JSON.stringify(coupon),
       });
       const data = await res.json();
       if (data.coupon) {
@@ -430,9 +395,7 @@ export const useStore = create<AppState>((set, get) => ({
         return true;
       }
       return false;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   deleteCoupon: async (id) => {
@@ -440,9 +403,7 @@ export const useStore = create<AppState>((set, get) => ({
       await fetch(`/api/coupons?id=${id}`, { method: 'DELETE' });
       await get().fetchCoupons();
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   addGrade: async (grade) => {
@@ -454,9 +415,7 @@ export const useStore = create<AppState>((set, get) => ({
       });
       const user = get().currentUser;
       await get().fetchGrades(user?.id);
-    } catch (e) {
-      console.error('addGrade error:', e);
-    }
+    } catch (e) { console.error('addGrade:', e); }
   },
 
   subscribeStudent: async (subscriptionName, amount, method = 'card', couponCode) => {
@@ -473,7 +432,6 @@ export const useStore = create<AppState>((set, get) => ({
       });
       const data = await res.json();
       if (data.payment) {
-        // تحديث المستخدم الحالي محلياً
         const expiry = new Date();
         expiry.setFullYear(expiry.getFullYear() + 1);
         const updatedUser = {
@@ -482,26 +440,20 @@ export const useStore = create<AppState>((set, get) => ({
           subscriptionExpiry: expiry.toISOString().split('T')[0],
         };
         set({ currentUser: updatedUser });
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-        }
+        if (typeof window !== 'undefined') localStorage.setItem('currentUser', JSON.stringify(updatedUser));
         await get().fetchPayments();
         return true;
       }
       return false;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   toggleFavorite: async (lessonId) => {
     const user = get().currentUser;
     if (!user || user.role !== 'student') return;
     const favorites = user.favorites || [];
-    const updated = favorites.includes(lessonId)
-      ? favorites.filter(id => id !== lessonId)
-      : [...favorites, lessonId];
-    get().updateUser(user.id, { favorites: updated });
+    const updated = favorites.includes(lessonId) ? favorites.filter(id => id !== lessonId) : [...favorites, lessonId];
+    await get().updateUser(user.id, { favorites: updated });
   },
 
   markLessonComplete: async (lessonId) => {
@@ -509,12 +461,11 @@ export const useStore = create<AppState>((set, get) => ({
     if (!user || user.role !== 'student') return;
     const completed = user.completedLessons || [];
     if (!completed.includes(lessonId)) {
-      get().updateUser(user.id, { completedLessons: [...completed, lessonId] });
+      await get().updateUser(user.id, { completedLessons: [...completed, lessonId] });
     }
   },
 }));
 
-// استرجاع المستخدم الحالي من localStorage عند بدء التطبيق
 if (typeof window !== 'undefined') {
   const saved = localStorage.getItem('currentUser');
   if (saved) {

@@ -4,89 +4,34 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Clock, Lock, Play, AlertCircle } from 'lucide-react';
+import { Eye, Clock, Lock, Play } from 'lucide-react';
 import type { Lesson } from '@/lib/types';
 
 interface VideoPlayerProps {
   lesson: Lesson;
 }
 
-// تحويل روابط YouTube المختلفة إلى embed URL
-function normalizeYouTubeUrl(url: string): string {
-  if (!url) return '';
-  // إذا كان بالفعل embed URL
-  if (url.includes('/embed/')) return url;
-  // youtube.com/watch?v=ID
-  const watchMatch = url.match(/[?&]v=([^&]+)/);
-  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
-  // youtu.be/ID
-  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
-  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
-  return url;
-}
-
-// تحويل روابط Vimeo
-function normalizeVimeoUrl(url: string): string {
-  if (!url) return '';
-  if (url.includes('player.vimeo.com')) return url;
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  if (match) return `https://player.vimeo.com/video/${match[1]}`;
-  return url;
-}
-
-// تحويل روابط Google Drive
-function normalizeGDriveUrl(url: string): string {
-  if (!url) return '';
-  if (url.includes('/preview')) return url;
-  const match = url.match(/\/file\/d\/([^/]+)/);
-  if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
-  return url;
-}
-
 export function VideoPlayer({ lesson }: VideoPlayerProps) {
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-
-  const getVideoUrl = () => {
-    switch (lesson.videoSource) {
-      case 'youtube': return normalizeYouTubeUrl(lesson.videoUrl);
-      case 'vimeo': return normalizeVimeoUrl(lesson.videoUrl);
-      case 'gdrive': return normalizeGDriveUrl(lesson.videoUrl);
-      default: return lesson.videoUrl;
-    }
-  };
-
-  const videoUrl = getVideoUrl();
 
   const renderVideo = () => {
-    if (!videoUrl) {
-      return (
-        <div className="w-full h-full flex items-center justify-center text-white">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>لم يتم إضافة رابط فيديو لهذا الدرس</p>
-          </div>
-        </div>
-      );
-    }
-
     switch (lesson.videoSource) {
       case 'youtube':
         return (
           <iframe
-            src={videoUrl}
+            src={lesson.videoUrl}
             className="w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             title={lesson.title}
             onLoad={() => setLoaded(true)}
-            onError={() => setError(true)}
+            sandbox="allow-scripts allow-same-origin allow-presentation"
           />
         );
       case 'vimeo':
         return (
           <iframe
-            src={videoUrl}
+            src={lesson.videoUrl}
             className="w-full h-full"
             allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen
@@ -104,18 +49,16 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
             disablePictureInPicture
             className="w-full h-full"
             onLoadedData={() => setLoaded(true)}
-            onError={() => setError(true)}
             onContextMenu={e => e.preventDefault()}
-            autoPlay={false}
           >
-            <source src={videoUrl} type="video/mp4" />
+            <source src={lesson.videoUrl} type="video/mp4" />
             متصفحك لا يدعم تشغيل الفيديو
           </video>
         );
       case 'gdrive':
         return (
           <iframe
-            src={videoUrl}
+            src={lesson.videoUrl}
             className="w-full h-full"
             allow="autoplay"
             allowFullScreen
@@ -124,33 +67,20 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
           />
         );
       default:
-        return (
-          <div className="w-full h-full flex items-center justify-center text-white">
-            <p>مصدر فيديو غير معروف</p>
-          </div>
-        );
+        return null;
     }
   };
 
   return (
     <Card className="overflow-hidden">
       <div className="relative aspect-video bg-black">
-        {!loaded && !error && (
+        {!loaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900 to-teal-900">
             <div className="text-center text-white">
               <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-pulse">
                 <Play className="w-10 h-10 mr-[-3px]" />
               </div>
               <p className="text-sm opacity-80">جاري تحميل الفيديو...</p>
-            </div>
-          </div>
-        )}
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-rose-900">
-            <div className="text-center text-white p-4">
-              <AlertCircle className="w-12 h-12 mx-auto mb-2" />
-              <p className="text-sm">تعذر تحميل الفيديو. تأكد من صحة الرابط.</p>
-              <p className="text-xs opacity-70 mt-2" dir="ltr">{videoUrl}</p>
             </div>
           </div>
         )}

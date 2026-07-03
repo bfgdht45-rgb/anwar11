@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/grades?studentId=xxx
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -16,7 +15,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/grades
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

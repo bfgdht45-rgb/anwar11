@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { DashboardLayout, StatCard, EmptyState } from '@/components/shared/DashboardLayout';
 import { HtmlExamBuilder } from '@/components/shared/HtmlExamRunner';
 import { useStore } from '@/lib/store';
@@ -208,12 +208,10 @@ function AdminOverview() {
 
 // ===== Manage Teachers =====
 function ManageTeachers() {
-  const { users, deleteUser, addUser, updateUser } = useStore();
+  const { users, deleteUser, addUser } = useStore();
   const teachers = users.filter(u => u.role === 'teacher');
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [viewTeacher, setViewTeacher] = useState<User | null>(null);
-  const [editTeacher, setEditTeacher] = useState<User | null>(null);
   const [newTeacher, setNewTeacher] = useState({ name: '', email: '', bio: '' });
 
   const filtered = teachers.filter(t => t.name.includes(search) || t.email.includes(search));
@@ -234,21 +232,9 @@ function ManageTeachers() {
       rating: 0, studentsCount: 0, lessonsCount: 0, totalEarnings: 0,
       specialties: [], createdAt: new Date().toISOString().split('T')[0],
     });
-    toast.success('تم إضافة المعلم بنجاح. كلمة المرور الافتراضية: teacher123');
+    toast.success('تم إضافة المعلم بنجاح');
     setNewTeacher({ name: '', email: '', bio: '' });
     setShowAdd(false);
-  };
-
-  const handleEdit = () => {
-    if (!editTeacher) return;
-    updateUser(editTeacher.id, {
-      name: editTeacher.name,
-      email: editTeacher.email,
-      bio: editTeacher.bio,
-      phone: editTeacher.phone,
-    });
-    toast.success('تم تحديث بيانات المعلم');
-    setEditTeacher(null);
   };
 
   return (
@@ -299,18 +285,9 @@ function ManageTeachers() {
                 <TableCell>{(t.totalEarnings || 0).toLocaleString('ar-EG')} ج.م</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => setViewTeacher(t)} title="عرض">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditTeacher(t)} title="تعديل">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => {
-                      if (confirm(`هل تريد حذف المعلم ${t.name}؟`)) {
-                        deleteUser(t.id);
-                        toast.success('تم حذف المعلم');
-                      }
-                    }} title="حذف">
+                    <Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost"><Edit className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => { deleteUser(t.id); toast.success('تم الحذف'); }}>
                       <Trash2 className="w-4 h-4 text-rose-500" />
                     </Button>
                   </div>
@@ -320,79 +297,11 @@ function ManageTeachers() {
           </TableBody>
         </Table>
 
-        {/* Dialog عرض المعلم */}
-        <Dialog open={!!viewTeacher} onOpenChange={(open) => !open && setViewTeacher(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>تفاصيل المعلم</DialogTitle>
-            </DialogHeader>
-            {viewTeacher && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-16 h-16 text-3xl"><AvatarFallback className="text-3xl">{viewTeacher.avatar}</AvatarFallback></Avatar>
-                  <div>
-                    <div className="font-bold text-lg">{viewTeacher.name}</div>
-                    <div className="text-sm text-muted-foreground">{viewTeacher.email}</div>
-                    <div className="text-sm text-muted-foreground">{viewTeacher.phone || 'لا يوجد رقم'}</div>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-sm font-medium mb-1">النبذة التعريفية</div>
-                  <div className="text-sm text-muted-foreground">{viewTeacher.bio}</div>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-2 rounded-lg bg-muted/50 text-center">
-                    <div className="font-bold">{viewTeacher.rating || 0}</div>
-                    <div className="text-xs text-muted-foreground">التقييم</div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-muted/50 text-center">
-                    <div className="font-bold">{viewTeacher.studentsCount || 0}</div>
-                    <div className="text-xs text-muted-foreground">طالب</div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-muted/50 text-center">
-                    <div className="font-bold">{viewTeacher.lessonsCount || 0}</div>
-                    <div className="text-xs text-muted-foreground">درس</div>
-                  </div>
-                </div>
-                {viewTeacher.specialties && viewTeacher.specialties.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium mb-1">التخصصات</div>
-                    <div className="flex flex-wrap gap-1">
-                      {viewTeacher.specialties.map(s => <Badge key={s} variant="secondary">{s}</Badge>)}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog تعديل المعلم */}
-        <Dialog open={!!editTeacher} onOpenChange={(open) => !open && setEditTeacher(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>تعديل بيانات المعلم</DialogTitle>
-            </DialogHeader>
-            {editTeacher && (
-              <div className="space-y-3">
-                <div><Label>الاسم</Label><Input value={editTeacher.name} onChange={e => setEditTeacher({ ...editTeacher, name: e.target.value })} /></div>
-                <div><Label>البريد الإلكتروني</Label><Input value={editTeacher.email} onChange={e => setEditTeacher({ ...editTeacher, email: e.target.value })} /></div>
-                <div><Label>الهاتف</Label><Input value={editTeacher.phone || ''} onChange={e => setEditTeacher({ ...editTeacher, phone: e.target.value })} /></div>
-                <div><Label>النبذة</Label><Textarea value={editTeacher.bio || ''} onChange={e => setEditTeacher({ ...editTeacher, bio: e.target.value })} /></div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditTeacher(null)}>إلغاء</Button>
-              <Button onClick={handleEdit}>حفظ</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>إضافة معلم جديد</DialogTitle>
-              <DialogDescription>أدخل بيانات المعلم الجديد. كلمة المرور الافتراضية: teacher123</DialogDescription>
+              <DialogDescription>أدخل بيانات المعلم الجديد</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
               <div><Label>الاسم</Label><Input value={newTeacher.name} onChange={e => setNewTeacher({ ...newTeacher, name: e.target.value })} /></div>
@@ -415,7 +324,6 @@ function ManageStudents() {
   const { users, deleteUser, updateUser } = useStore();
   const students = users.filter(u => u.role === 'student');
   const [search, setSearch] = useState('');
-  const [viewStudent, setViewStudent] = useState<User | null>(null);
 
   const filtered = students.filter(s => s.name.includes(search) || s.email.includes(search));
 
@@ -463,22 +371,11 @@ function ManageStudents() {
                 <TableCell>{s.completedLessons?.length || 0}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => setViewStudent(s)} title="عرض">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => {
-                      const newStatus = s.subscriptionStatus === 'active' ? 'pending' : 'active';
-                      updateUser(s.id, { subscriptionStatus: newStatus });
-                      toast.success(newStatus === 'active' ? 'تم تفعيل الاشتراك' : 'تم إيقاف الاشتراك');
-                    }} title="تبديل الاشتراك">
+                    <Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => updateUser(s.id, { subscriptionStatus: s.subscriptionStatus === 'active' ? 'pending' : 'active' })}>
                       <Shield className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => {
-                      if (confirm(`هل تريد حذف الطالب ${s.name}؟`)) {
-                        deleteUser(s.id);
-                        toast.success('تم حذف الطالب');
-                      }
-                    }} title="حذف">
+                    <Button size="icon" variant="ghost" onClick={() => { deleteUser(s.id); toast.success('تم الحذف'); }}>
                       <Trash2 className="w-4 h-4 text-rose-500" />
                     </Button>
                   </div>
@@ -487,53 +384,6 @@ function ManageStudents() {
             ))}
           </TableBody>
         </Table>
-
-        <Dialog open={!!viewStudent} onOpenChange={(open) => !open && setViewStudent(null)}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>تفاصيل الطالب</DialogTitle></DialogHeader>
-            {viewStudent && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-16 h-16 text-3xl"><AvatarFallback className="text-3xl">{viewStudent.avatar}</AvatarFallback></Avatar>
-                  <div>
-                    <div className="font-bold text-lg">{viewStudent.name}</div>
-                    <div className="text-sm text-muted-foreground">{viewStudent.email}</div>
-                    <div className="text-sm text-muted-foreground">{viewStudent.phone || 'لا يوجد'}</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 rounded-lg bg-muted/50 text-center">
-                    <div className="font-bold">{viewStudent.stage === 'high' ? 'ثانوي' : 'إعدادي'}</div>
-                    <div className="text-xs text-muted-foreground">المرحلة</div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-muted/50 text-center">
-                    <div className="font-bold">{viewStudent.year === 'first' ? 'الأولى' : viewStudent.year === 'second' ? 'الثانية' : 'الثالثة'}</div>
-                    <div className="text-xs text-muted-foreground">السنة</div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-muted/50 text-center">
-                    <div className="font-bold">{viewStudent.completedLessons?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">دروس مكتملة</div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-muted/50 text-center">
-                    <div className="font-bold">{viewStudent.favorites?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">مفضلة</div>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <div className="text-sm font-medium">حالة الاشتراك</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={viewStudent.subscriptionStatus === 'active' ? 'default' : 'outline'}>
-                      {viewStudent.subscriptionStatus === 'active' ? '✓ نشط' : '⚠ معلق'}
-                    </Badge>
-                    {viewStudent.subscriptionExpiry && (
-                      <span className="text-xs text-muted-foreground">ينتهي: {viewStudent.subscriptionExpiry}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
@@ -541,62 +391,35 @@ function ManageStudents() {
 
 // ===== Manage Lessons =====
 function ManageLessons() {
-  const { lessons, deleteLesson, addLesson, updateLesson, currentUser, openLesson, units, users, fetchUsers, fetchUnits } = useStore();
+  const { lessons, deleteLesson, addLesson, currentUser } = useStore();
   const [showAdd, setShowAdd] = useState(false);
-  const [editLesson, setEditLesson] = useState<Lesson | null>(null);
-  const teachers = users.filter((u: any) => u.role === 'teacher');
   const [newLesson, setNewLesson] = useState({
     title: '', description: '', videoUrl: '', videoDuration: '',
-    unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' as Lesson['videoSource'],
+    unitId: initialUnits[0].id, allowPdfDownload: true,
   });
 
-  // تحديث unitId و teacherId الافتراضي - باستخدام derived state
-  const defaultUnitId = newLesson.unitId || units[0]?.id || '';
-  const defaultTeacherId = newLesson.teacherId || teachers[0]?.id || '';
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!newLesson.title || !newLesson.videoUrl) {
       toast.error('أدخل العنوان ورابط الفيديو');
       return;
     }
-    if (!newLesson.unitId && !defaultUnitId) {
-      toast.error('اختر الوحدة');
-      return;
-    }
-    if (!newLesson.teacherId && !defaultTeacherId) {
-      toast.error('اختر المعلم');
-      return;
-    }
-    const success = await addLesson({
-      unitId: newLesson.unitId || defaultUnitId,
-      teacherId: newLesson.teacherId || defaultTeacherId,
+    addLesson({
+      id: `lesson-${Date.now()}`,
+      unitId: newLesson.unitId,
       title: newLesson.title,
       description: newLesson.description,
+      teacherId: currentUser?.id || 'teacher-1',
       videoUrl: newLesson.videoUrl,
-      videoSource: newLesson.videoSource,
+      videoSource: 'youtube',
       videoDuration: newLesson.videoDuration || '00:00',
+      pdfs: [], additionalFiles: [],
+      views: 0, order: lessons.length + 1,
+      createdAt: new Date().toISOString().split('T')[0],
       allowPdfDownload: newLesson.allowPdfDownload,
-    } as any);
-    if (success) {
-      toast.success('تم إضافة الدرس بنجاح');
-      setShowAdd(false);
-      setNewLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' });
-    } else {
-      toast.error('فشل في إضافة الدرس');
-    }
-  };
-
-  const handleEdit = () => {
-    if (!editLesson) return;
-    updateLesson(editLesson.id, {
-      title: editLesson.title,
-      description: editLesson.description,
-      videoUrl: editLesson.videoUrl,
-      videoDuration: editLesson.videoDuration,
-      allowPdfDownload: editLesson.allowPdfDownload,
     });
-    toast.success('تم تحديث الدرس');
-    setEditLesson(null);
+    toast.success('تم إضافة الدرس');
+    setShowAdd(false);
+    setNewLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: initialUnits[0].id, allowPdfDownload: true });
   };
 
   return (
@@ -628,18 +451,8 @@ function ManageLessons() {
                 <div className="flex items-center justify-between">
                   <Badge variant="secondary" className="text-xs">{l.views} مشاهدة</Badge>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openLesson(l.id)} title="عرض">
-                      <Eye className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditLesson(l)} title="تعديل">
-                      <Edit className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
-                      if (confirm(`هل تريد حذف الدرس "${l.title}"؟`)) {
-                        deleteLesson(l.id);
-                        toast.success('تم حذف الدرس');
-                      }
-                    }} title="حذف">
+                    <Button size="icon" variant="ghost" className="h-7 w-7"><Edit className="w-3.5 h-3.5" /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { deleteLesson(l.id); toast.success('تم الحذف'); }}>
                       <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                     </Button>
                   </div>
@@ -649,7 +462,6 @@ function ManageLessons() {
           ))}
         </div>
 
-        {/* Dialog إضافة درس */}
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -660,39 +472,12 @@ function ManageLessons() {
               <div><Label>الوصف</Label><Textarea value={newLesson.description} onChange={e => setNewLesson({ ...newLesson, description: e.target.value })} /></div>
               <div>
                 <Label>الوحدة</Label>
-                <Select value={newLesson.unitId || defaultUnitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
-                  <SelectTrigger><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
-                  <SelectContent>
-                    {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات - شغل /api/seed</SelectItem>}
-                    {units.map(u => <SelectItem key={u.id} value={u.id}>{u.title} ({u.stageId === 'high' ? 'ثانوي' : 'إعدادي'} - {u.yearId === 'first' ? 'أولى' : u.yearId === 'second' ? 'ثانية' : 'ثالثة'})</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>المعلم</Label>
-                <Select value={newLesson.teacherId || defaultTeacherId} onValueChange={v => setNewLesson({ ...newLesson, teacherId: v })}>
-                  <SelectTrigger><SelectValue placeholder="اختر المعلم" /></SelectTrigger>
-                  <SelectContent>
-                    {teachers.length === 0 && <SelectItem value="none" disabled>لا يوجد معلمين</SelectItem>}
-                    {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.avatar} {t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>مصدر الفيديو</Label>
-                <Select value={newLesson.videoSource} onValueChange={(v: any) => setNewLesson({ ...newLesson, videoSource: v })}>
+                <Select value={newLesson.unitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="youtube">YouTube</SelectItem>
-                    <SelectItem value="vimeo">Vimeo</SelectItem>
-                    <SelectItem value="direct">رفع مباشر</SelectItem>
-                    <SelectItem value="gdrive">Google Drive</SelectItem>
-                    <SelectItem value="cloudflare">Cloudflare Stream</SelectItem>
-                    <SelectItem value="bunny">Bunny Stream</SelectItem>
-                  </SelectContent>
+                  <SelectContent>{initialUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>رابط الفيديو (Embed URL)</Label><Input dir="ltr" value={newLesson.videoUrl} onChange={e => setNewLesson({ ...newLesson, videoUrl: e.target.value })} placeholder="https://www.youtube.com/embed/..." /></div>
+              <div><Label>رابط الفيديو (YouTube embed)</Label><Input dir="ltr" value={newLesson.videoUrl} onChange={e => setNewLesson({ ...newLesson, videoUrl: e.target.value })} placeholder="https://www.youtube.com/embed/..." /></div>
               <div><Label>مدة الفيديو</Label><Input value={newLesson.videoDuration} onChange={e => setNewLesson({ ...newLesson, videoDuration: e.target.value })} placeholder="24:35" /></div>
               <div className="flex items-center gap-2">
                 <Switch checked={newLesson.allowPdfDownload} onCheckedChange={c => setNewLesson({ ...newLesson, allowPdfDownload: c })} />
@@ -705,29 +490,6 @@ function ManageLessons() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* Dialog تعديل درس */}
-        <Dialog open={!!editLesson} onOpenChange={(open) => !open && setEditLesson(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>تعديل الدرس</DialogTitle></DialogHeader>
-            {editLesson && (
-              <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                <div><Label>عنوان الدرس</Label><Input value={editLesson.title} onChange={e => setEditLesson({ ...editLesson, title: e.target.value })} /></div>
-                <div><Label>الوصف</Label><Textarea value={editLesson.description} onChange={e => setEditLesson({ ...editLesson, description: e.target.value })} /></div>
-                <div><Label>رابط الفيديو</Label><Input dir="ltr" value={editLesson.videoUrl} onChange={e => setEditLesson({ ...editLesson, videoUrl: e.target.value })} /></div>
-                <div><Label>مدة الفيديو</Label><Input value={editLesson.videoDuration} onChange={e => setEditLesson({ ...editLesson, videoDuration: e.target.value })} /></div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={editLesson.allowPdfDownload} onCheckedChange={c => setEditLesson({ ...editLesson, allowPdfDownload: c })} />
-                  <Label>السماح بتحميل PDF</Label>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditLesson(null)}>إلغاء</Button>
-              <Button onClick={handleEdit}>حفظ</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
@@ -735,7 +497,7 @@ function ManageLessons() {
 
 // ===== Manage Videos =====
 function ManageVideos() {
-  const { lessons, openLesson } = useStore();
+  const { lessons } = useStore();
   return (
     <Card>
       <CardHeader>
@@ -750,7 +512,6 @@ function ManageVideos() {
               <TableHead>المصدر</TableHead>
               <TableHead>المدة</TableHead>
               <TableHead>المشاهدات</TableHead>
-              <TableHead>إجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -760,11 +521,6 @@ function ManageVideos() {
                 <TableCell><Badge variant="secondary">{l.videoSource}</Badge></TableCell>
                 <TableCell>{l.videoDuration}</TableCell>
                 <TableCell>{l.views.toLocaleString('ar-EG')}</TableCell>
-                <TableCell>
-                  <Button size="sm" variant="ghost" onClick={() => openLesson(l.id)}>
-                    <Eye className="w-4 h-4 ml-1" /> عرض
-                  </Button>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -776,40 +532,8 @@ function ManageVideos() {
 
 // ===== Manage PDFs =====
 function ManagePDFs() {
-  const { lessons, updateLesson } = useStore();
-  const allPdfs = lessons.flatMap(l => l.pdfs.map(p => ({ ...p, lesson: l.title, lessonId: l.id })));
-  const [showUpload, setShowUpload] = useState(false);
-  const [newPdf, setNewPdf] = useState({ name: '', url: '', lessonId: lessons[0]?.id || '' });
-
-  const handleUpload = () => {
-    if (!newPdf.name || !newPdf.url || !newPdf.lessonId) {
-      toast.error('املأ كل الحقول');
-      return;
-    }
-    const lesson = lessons.find(l => l.id === newPdf.lessonId);
-    if (!lesson) return;
-    updateLesson(lesson.id, {
-      pdfs: [...lesson.pdfs, {
-        id: `pdf-${Date.now()}`,
-        name: newPdf.name,
-        url: newPdf.url,
-        size: '1.2 MB',
-        pages: 10,
-      }],
-    });
-    toast.success('تم رفع ملف PDF');
-    setNewPdf({ name: '', url: '', lessonId: lessons[0]?.id || '' });
-    setShowUpload(false);
-  };
-
-  const handleDelete = (lessonId: string, pdfId: string) => {
-    const lesson = lessons.find(l => l.id === lessonId);
-    if (!lesson) return;
-    if (confirm('هل تريد حذف هذا الملف؟')) {
-      updateLesson(lessonId, { pdfs: lesson.pdfs.filter(p => p.id !== pdfId) });
-      toast.success('تم حذف الملف');
-    }
-  };
+  const { lessons } = useStore();
+  const allPdfs = lessons.flatMap(l => l.pdfs.map(p => ({ ...p, lesson: l.title })));
 
   return (
     <Card>
@@ -819,7 +543,7 @@ function ManagePDFs() {
             <CardTitle>إدارة ملفات PDF ({allPdfs.length})</CardTitle>
             <CardDescription>كل ملفات PDF على المنصة</CardDescription>
           </div>
-          <Button onClick={() => setShowUpload(true)}><Upload className="w-4 h-4 ml-2" /> رفع PDF</Button>
+          <Button><Upload className="w-4 h-4 ml-2" /> رفع PDF</Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -833,46 +557,12 @@ function ManagePDFs() {
                     <div className="font-medium text-sm truncate">{p.name}</div>
                     <div className="text-xs text-muted-foreground">{p.size} • {p.pages} صفحة</div>
                     <div className="text-xs text-muted-foreground mt-1">في: {p.lesson}</div>
-                    <div className="flex gap-1 mt-2">
-                      <Button size="sm" variant="outline" onClick={() => window.open(p.url, '_blank')}>
-                        <Eye className="w-3.5 h-3.5 ml-1" /> عرض
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleDelete(p.lessonId, p.id)}>
-                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-
-        <Dialog open={showUpload} onOpenChange={setShowUpload}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>رفع ملف PDF جديد</DialogTitle>
-              <DialogDescription>أدخل بيانات الملف</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>الدرس</Label>
-                <Select value={newPdf.lessonId} onValueChange={v => setNewPdf({ ...newPdf, lessonId: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {lessons.map(l => <SelectItem key={l.id} value={l.id}>{l.title}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>اسم الملف</Label><Input value={newPdf.name} onChange={e => setNewPdf({ ...newPdf, name: e.target.value })} placeholder="ملخص الدرس.pdf" /></div>
-              <div><Label>رابط الملف (URL)</Label><Input dir="ltr" value={newPdf.url} onChange={e => setNewPdf({ ...newPdf, url: e.target.value })} placeholder="https://..." /></div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowUpload(false)}>إلغاء</Button>
-              <Button onClick={handleUpload}>رفع</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
@@ -882,7 +572,6 @@ function ManagePDFs() {
 function ManageExams() {
   const { exams, addExam, deleteExam } = useStore();
   const [showAdd, setShowAdd] = useState(false);
-  const [previewExam, setPreviewExam] = useState<Exam | null>(null);
   const [examType, setExamType] = useState<'html' | 'questions'>('html');
   const [newExam, setNewExam] = useState({
     title: '', description: '', duration: 30, passingScore: 60,
@@ -893,10 +582,6 @@ function ManageExams() {
   const handleSave = () => {
     if (!newExam.title) {
       toast.error('أدخل عنوان الامتحان');
-      return;
-    }
-    if (examType === 'html' && !htmlContent) {
-      toast.error('أدخل كود HTML للامتحان');
       return;
     }
     const exam: Exam = {
@@ -954,9 +639,7 @@ function ManageExams() {
                     {e.randomOrder && <Badge variant="secondary">🔀 ترتيب عشوائي</Badge>}
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setPreviewExam(e)}>
-                      <Eye className="w-4 h-4 ml-1" /> معاينة
-                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1"><Eye className="w-4 h-4 ml-1" /> معاينة</Button>
                     <Button size="sm" variant="ghost" onClick={() => { deleteExam(e.id); toast.success('تم الحذف'); }}>
                       <Trash2 className="w-4 h-4 text-rose-500" />
                     </Button>
@@ -967,34 +650,6 @@ function ManageExams() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Dialog معاينة الامتحان */}
-      <Dialog open={!!previewExam} onOpenChange={(open) => !open && setPreviewExam(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-amber-600" />
-              {previewExam?.title}
-            </DialogTitle>
-            <DialogDescription>{previewExam?.description}</DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden">
-            {previewExam?.isHtmlExam && previewExam?.htmlContent ? (
-              <iframe
-                srcDoc={previewExam.htmlContent}
-                className="w-full h-[70vh] rounded-lg border"
-                sandbox="allow-scripts allow-same-origin allow-forms"
-                title={previewExam.title}
-              />
-            ) : (
-              <div className="p-8 text-center text-muted-foreground">
-                <HelpCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                هذا الامتحان ليس امتحان HTML تفاعلي
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -1050,17 +705,6 @@ function ManageExams() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
-            {examType === 'html' && htmlContent && (
-              <Button variant="outline" onClick={() => {
-                const newWindow = window.open('', '_blank');
-                if (newWindow) {
-                  newWindow.document.write(htmlContent);
-                  newWindow.document.close();
-                }
-              }}>
-                <Eye className="w-4 h-4 ml-2" /> معاينة سريعة
-              </Button>
-            )}
             <Button onClick={handleSave}><Save className="w-4 h-4 ml-2" /> حفظ الامتحان</Button>
           </DialogFooter>
         </DialogContent>
@@ -1071,36 +715,7 @@ function ManageExams() {
 
 // ===== Question Bank =====
 function QuestionBank() {
-  const { questionBank, addQuestion, deleteQuestion } = useStore();
-  const [showAdd, setShowAdd] = useState(false);
-  const [newQ, setNewQ] = useState({
-    text: '', type: 'mcq' as 'mcq' | 'truefalse' | 'fill' | 'essay' | 'image',
-    difficulty: 'easy' as 'easy' | 'medium' | 'hard',
-    correctAnswer: '', options: ['', '', '', ''],
-    points: 5, stageId: 'high', yearId: 'first',
-  });
-
-  const handleAdd = () => {
-    if (!newQ.text || !newQ.correctAnswer) {
-      toast.error('أدخل السؤال والإجابة');
-      return;
-    }
-    addQuestion({
-      id: `qb-${Date.now()}`,
-      type: newQ.type,
-      difficulty: newQ.difficulty,
-      text: newQ.text,
-      options: newQ.type === 'mcq' ? newQ.options.filter(o => o) : undefined,
-      correctAnswer: newQ.correctAnswer,
-      points: newQ.points,
-      stageId: newQ.stageId as any,
-      yearId: newQ.yearId as any,
-    });
-    toast.success('تم إضافة السؤال');
-    setNewQ({ text: '', type: 'mcq', difficulty: 'easy', correctAnswer: '', options: ['', '', '', ''], points: 5, stageId: 'high', yearId: 'first' });
-    setShowAdd(false);
-  };
-
+  const { questionBank } = useStore();
   return (
     <Card>
       <CardHeader>
@@ -1109,7 +724,7 @@ function QuestionBank() {
             <CardTitle>بنك الأسئلة ({questionBank.length})</CardTitle>
             <CardDescription>إدارة وتصنيف الأسئلة</CardDescription>
           </div>
-          <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 ml-2" /> إضافة سؤال</Button>
+          <Button><Plus className="w-4 h-4 ml-2" /> إضافة سؤال</Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -1122,7 +737,6 @@ function QuestionBank() {
               <TableHead>المرحلة</TableHead>
               <TableHead>السنة</TableHead>
               <TableHead>الدرجة</TableHead>
-              <TableHead>إجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1142,96 +756,10 @@ function QuestionBank() {
                 <TableCell>{q.stageId === 'high' ? 'ثانوي' : 'إعدادي'}</TableCell>
                 <TableCell>{q.yearId === 'first' ? '1' : q.yearId === 'second' ? '2' : '3'}</TableCell>
                 <TableCell>{q.points}</TableCell>
-                <TableCell>
-                  <Button size="icon" variant="ghost" onClick={() => {
-                    if (confirm('حذف السؤال؟')) {
-                      deleteQuestion(q.id);
-                      toast.success('تم الحذف');
-                    }
-                  }}>
-                    <Trash2 className="w-4 h-4 text-rose-500" />
-                  </Button>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-
-        <Dialog open={showAdd} onOpenChange={setShowAdd}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>إضافة سؤال جديد</DialogTitle></DialogHeader>
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-              <div><Label>نص السؤال</Label><Textarea value={newQ.text} onChange={e => setNewQ({ ...newQ, text: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>النوع</Label>
-                  <Select value={newQ.type} onValueChange={(v: any) => setNewQ({ ...newQ, type: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mcq">اختيار من متعدد</SelectItem>
-                      <SelectItem value="truefalse">صح / خطأ</SelectItem>
-                      <SelectItem value="fill">أكمل الفراغ</SelectItem>
-                      <SelectItem value="essay">مقالي</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>الصعوبة</Label>
-                  <Select value={newQ.difficulty} onValueChange={(v: any) => setNewQ({ ...newQ, difficulty: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">سهل</SelectItem>
-                      <SelectItem value="medium">متوسط</SelectItem>
-                      <SelectItem value="hard">صعب</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {newQ.type === 'mcq' && (
-                <div className="space-y-2">
-                  <Label>الاختيارات</Label>
-                  {newQ.options.map((opt, i) => (
-                    <Input key={i} placeholder={`الاختيار ${i + 1}`} value={opt}
-                      onChange={e => {
-                        const opts = [...newQ.options];
-                        opts[i] = e.target.value;
-                        setNewQ({ ...newQ, options: opts });
-                      }} />
-                  ))}
-                </div>
-              )}
-              <div><Label>الإجابة الصحيحة</Label><Input value={newQ.correctAnswer} onChange={e => setNewQ({ ...newQ, correctAnswer: e.target.value })} /></div>
-              <div className="grid grid-cols-3 gap-3">
-                <div><Label>الدرجة</Label><Input type="number" value={newQ.points} onChange={e => setNewQ({ ...newQ, points: +e.target.value })} /></div>
-                <div>
-                  <Label>المرحلة</Label>
-                  <Select value={newQ.stageId} onValueChange={v => setNewQ({ ...newQ, stageId: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="middle">إعدادي</SelectItem>
-                      <SelectItem value="high">ثانوي</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>السنة</Label>
-                  <Select value={newQ.yearId} onValueChange={v => setNewQ({ ...newQ, yearId: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="first">الأولى</SelectItem>
-                      <SelectItem value="second">الثانية</SelectItem>
-                      <SelectItem value="third">الثالثة</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
-              <Button onClick={handleAdd}>إضافة</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
@@ -1426,7 +954,7 @@ function CouponsSection() {
 
 // ===== Comments =====
 function CommentsSection() {
-  const { comments, deleteComment } = useStore();
+  const { comments } = useStore();
   return (
     <Card>
       <CardHeader><CardTitle>إدارة التعليقات ({comments.length})</CardTitle></CardHeader>
@@ -1442,14 +970,7 @@ function CommentsSection() {
               </div>
               <p className="text-sm text-muted-foreground">{c.text}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => {
-              if (confirm('حذف التعليق؟')) {
-                deleteComment(c.id);
-                toast.success('تم حذف التعليق');
-              }
-            }}>
-              <Trash2 className="w-4 h-4 text-rose-500" />
-            </Button>
+            <Button size="icon" variant="ghost"><Trash2 className="w-4 h-4 text-rose-500" /></Button>
           </div>
         ))}
       </CardContent>
@@ -1568,95 +1089,17 @@ function StatsSection() {
 
 // ===== Backups =====
 function BackupsSection() {
-  const { exportBackup, importBackup } = useStore();
-  const [backups, setBackups] = useState<{ id: string; date: string; size: string; data: string }[]>([
-    { id: 'b1', date: '2026-06-28 12:00', size: '45 MB', data: '' },
-    { id: 'b2', date: '2026-06-27 12:00', size: '44 MB', data: '' },
-    { id: 'b3', date: '2026-06-26 12:00', size: '43 MB', data: '' },
+  const [backups] = useState([
+    { id: 'b1', date: '2026-06-28 12:00', size: '45 MB' },
+    { id: 'b2', date: '2026-06-27 12:00', size: '44 MB' },
+    { id: 'b3', date: '2026-06-26 12:00', size: '43 MB' },
   ]);
-  const [showRestore, setShowRestore] = useState(false);
-  const [restoreData, setRestoreData] = useState('');
-
-  const handleBackup = () => {
-    const data = exportBackup();
-    const newBackup = {
-      id: `b-${Date.now()}`,
-      date: new Date().toLocaleString('ar-EG'),
-      size: `${(data.length / 1024).toFixed(1)} KB`,
-      data,
-    };
-    setBackups([newBackup, ...backups]);
-    // تحميل الملف
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('تم إنشاء نسخة احتياطية وتحميلها');
-  };
-
-  const handleDownload = (b: { data: string; date: string; id: string }) => {
-    if (!b.data) {
-      toast.info('لا توجد بيانات في هذه النسخة');
-      return;
-    }
-    const blob = new Blob([b.data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup-${b.id}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('تم تحميل النسخة');
-  };
-
-  const handleRestore = (b: { data: string }) => {
-    if (!b.data) {
-      toast.error('لا توجد بيانات للاستعادة');
-      return;
-    }
-    if (confirm('هل تريد استعادة هذه النسخة؟ سيتم استبدال كل البيانات الحالية.')) {
-      const success = importBackup(b.data);
-      if (success) {
-        toast.success('تم استعادة النسخة بنجاح');
-      } else {
-        toast.error('فشل في الاستعادة - ملف تالف');
-      }
-    }
-  };
-
-  const handleRestoreFromText = () => {
-    if (!restoreData) {
-      toast.error('الصق بيانات النسخة الاحتياطية');
-      return;
-    }
-    if (confirm('هل تريد استعادة هذه النسخة؟')) {
-      const success = importBackup(restoreData);
-      if (success) {
-        toast.success('تم الاستعادة بنجاح');
-        setShowRestore(false);
-        setRestoreData('');
-      } else {
-        toast.error('البيانات غير صالحة');
-      }
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div><CardTitle>النسخ الاحتياطية</CardTitle></div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowRestore(true)}>
-              <Upload className="w-4 h-4 ml-2" /> استعادة من ملف
-            </Button>
-            <Button onClick={handleBackup}>
-              <Database className="w-4 h-4 ml-2" /> نسخ احتياطي الآن
-            </Button>
-          </div>
+          <Button><Database className="w-4 h-4 ml-2" /> نسخ احتياطي الآن</Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -1674,34 +1117,13 @@ function BackupsSection() {
                 <TableCell>{b.date}</TableCell>
                 <TableCell>{b.size}</TableCell>
                 <TableCell>
-                  <Button size="sm" variant="ghost" onClick={() => handleDownload(b)}>تحميل</Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleRestore(b)}>استعادة</Button>
+                  <Button size="sm" variant="ghost">تحميل</Button>
+                  <Button size="sm" variant="ghost">استعادة</Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-
-        <Dialog open={showRestore} onOpenChange={setShowRestore}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>استعادة من ملف</DialogTitle>
-              <DialogDescription>الصق محتوى ملف النسخة الاحتياطية (JSON)</DialogDescription>
-            </DialogHeader>
-            <Textarea
-              rows={10}
-              dir="ltr"
-              placeholder='{"users":[...],"lessons":[...],...}'
-              value={restoreData}
-              onChange={e => setRestoreData(e.target.value)}
-              className="font-mono text-xs"
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowRestore(false)}>إلغاء</Button>
-              <Button onClick={handleRestoreFromText}>استعادة</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );

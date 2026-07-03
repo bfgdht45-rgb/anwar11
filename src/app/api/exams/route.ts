@@ -18,7 +18,7 @@ export async function GET() {
   }
 }
 
-// POST /api/exams - إنشاء امتحان جديد
+// POST /api/exams
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -36,7 +36,17 @@ export async function POST(request: NextRequest) {
         isHtmlExam: body.isHtmlExam ?? false,
         htmlContent: body.htmlContent,
         lessonId: body.lessonId || null,
-        questions: body.questions?.length ? { create: body.questions } : undefined,
+        questions: body.questions?.length ? {
+          create: body.questions.map((q: any) => ({
+            type: q.type || 'MCQ',
+            difficulty: q.difficulty || 'MEDIUM',
+            text: q.text,
+            options: q.options || [],
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation,
+            points: q.points || 5,
+          }))
+        } : undefined,
       },
       include: { questions: true },
     });

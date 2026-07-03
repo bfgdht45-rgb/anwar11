@@ -21,14 +21,14 @@ import HtmlExamRunner from '@/components/shared/HtmlExamRunner';
 export default function LessonPage() {
   const {
     lessons, currentLessonId, currentUser, setView, addComment,
-    toggleFavorite, markLessonComplete, addGrade, fetchComments
+    toggleFavorite, markLessonComplete, addGrade, fetchComments, comments
   } = useStore();
 
   const [tab, setTab] = useState('content');
   const [commentText, setCommentText] = useState('');
   const [commentRating, setCommentRating] = useState(5);
+  const [assignmentAnswers, setAssignmentAnswers] = useState<Record<string, string>>({});
 
-  // جلب التعليقات الخاصة بالدرس الحالي
   useEffect(() => {
     if (currentLessonId) {
       fetchComments(currentLessonId);
@@ -55,9 +55,8 @@ export default function LessonPage() {
     );
   }
 
-  // استخدام البيانات من داخل الـ lesson object (من API)
   const teacher = lesson.teacher;
-  const lessonComments = (lesson.comments || []).map((c: any) => ({
+  const lessonComments = comments.filter(c => c.lessonId === lesson.id).map((c: any) => ({
     ...c,
     userName: c.user?.name || c.userName || 'مستخدم',
     userAvatar: c.user?.avatar || c.userAvatar || '👤',
@@ -78,9 +77,28 @@ export default function LessonPage() {
     toast.success('تم إضافة تعليقك');
   };
 
+  const handleAssignmentSubmit = () => {
+    if (!assignment) return;
+    let score = 0;
+    assignment.questions.forEach((q: any) => {
+      if (assignmentAnswers[q.id] === q.correctAnswer) score += q.points;
+    });
+    addGrade({
+      score,
+      totalScore: assignment.totalPoints,
+      itemType: 'assignment',
+      itemId: assignment.id,
+      title: assignment.title,
+      studentId: currentUser?.id,
+      studentName: currentUser?.name,
+      assignmentId: assignment.id,
+    });
+    toast.success(`تم تسليم الواجب. درجتك: ${score}/${assignment.totalPoints}`);
+    setAssignmentAnswers({});
+  };
+
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Top Bar */}
       <header className="sticky top-0 z-40 h-16 bg-card border-b flex items-center justify-between px-4">
         <Button variant="ghost" onClick={() => setView(`${currentUser?.role}-dashboard` as any)}>
           <ArrowRight className="w-4 h-4 ml-2" />
@@ -99,23 +117,19 @@ export default function LessonPage() {
 
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Lesson Title */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary">{lesson.videoSource}</Badge>
                 <Badge variant="outline" className="gap-1"><Clock className="w-3 h-3" />{lesson.videoDuration}</Badge>
-                <Badge variant="outline" className="gap-1"><Eye className="w-3 h-3" />{lesson.views.toLocaleString('ar-EG')}</Badge>
+                <Badge variant="outline" className="gap-1"><Eye className="w-3 h-3" />{lesson.views || 0}</Badge>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold mb-2">{lesson.title}</h1>
               <p className="text-muted-foreground">{lesson.description}</p>
             </div>
 
-            {/* Video */}
             <VideoPlayer lesson={lesson} />
 
-            {/* Tabs */}
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="content">المحتوى</TabsTrigger>
@@ -125,38 +139,33 @@ export default function LessonPage() {
                 <TabsTrigger value="exam">امتحان</TabsTrigger>
               </TabsList>
 
-              {/* Content Tab */}
               <TabsContent value="content" className="space-y-4">
                 <Card>
                   <CardHeader><CardTitle className="text-lg">عن الدرس</CardTitle></CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground leading-relaxed mb-4">
-                      {lesson.description}
-                    </p>
+                    <p className="text-muted-foreground leading-relaxed mb-4">{lesson.description}</p>
                     <p className="text-muted-foreground leading-relaxed">
-                      في هذا الدرس سنتناول المفاهيم الأساسية بأسلوب مبسط مع أمثلة عملية وتمارين متنوعة. سيتعلم الطالب كيفية تطبيق القواعد الرياضية وحل المسائل بشكل منهجي ومنظم، مع التركيز على فهم المبادئ بدلاً من الحفظ.
+                      في هذا الدرس سنتناول المفاهيم الأساسية بأسلوب مبسط مع أمثلة عملية وتمارين متنوعة.
                     </p>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* PDFs Tab */}
               <TabsContent value="pdfs" className="space-y-4">
                 {(lesson.pdfs || []).length === 0 ? (
-                  <Card><CardContent className="pt-6 text-center text-muted-foreground">لا توجد ملفات PDF</CardContent></Card>
+                  <Card><CardContent className="pt-6 text-center text-muted-foreground">لا توجد ملفات PDF لهذا الدرس</CardContent></Card>
                 ) : (
-                  (lesson.pdfs || []).map(pdf => (
+                  (lesson.pdfs || []).map((pdf: any) => (
                     <PdfViewer key={pdf.id} name={pdf.name} url={pdf.url} allowDownload={lesson.allowPdfDownload} />
                   ))
                 )}
               </TabsContent>
 
-              {/* Files Tab */}
               <TabsContent value="files" className="space-y-4">
                 {(lesson.additionalFiles || []).length === 0 ? (
                   <Card><CardContent className="pt-6 text-center text-muted-foreground">لا توجد ملفات إضافية</CardContent></Card>
                 ) : (
-                  (lesson.additionalFiles || []).map(file => (
+                  (lesson.additionalFiles || []).map((file: any) => (
                     <Card key={file.id}>
                       <CardContent className="p-4 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
@@ -166,8 +175,10 @@ export default function LessonPage() {
                           <div className="font-medium text-sm">{file.name}</div>
                           <div className="text-xs text-muted-foreground">{file.type}</div>
                         </div>
-                        <Button size="sm" variant="outline">
-                          <Download className="w-4 h-4 ml-1" /> تحميل
+                        <Button size="sm" variant="outline" asChild>
+                          <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">
+                            <Download className="w-4 h-4 ml-1" /> تحميل
+                          </a>
                         </Button>
                       </CardContent>
                     </Card>
@@ -175,7 +186,6 @@ export default function LessonPage() {
                 )}
               </TabsContent>
 
-              {/* Assignment Tab */}
               <TabsContent value="assignment">
                 {assignment ? (
                   <Card>
@@ -190,33 +200,62 @@ export default function LessonPage() {
                       <CardDescription>{assignment.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {assignment.questions.map((q, i) => (
+                      {(assignment.questions || []).map((q: any, i: number) => (
                         <div key={q.id} className="p-4 rounded-lg border">
                           <div className="flex items-start gap-2 mb-3">
                             <Badge>{i + 1}</Badge>
+                            <Badge variant="secondary">{q.points} نقطة</Badge>
                             <p className="flex-1 font-medium">{q.text}</p>
                           </div>
-                          {q.type === 'mcq' && (
+                          {q.type === 'MCQ' && (
                             <div className="grid gap-2">
-                              {q.options?.map(opt => (
+                              {(q.options || []).map((opt: string) => (
                                 <label key={opt} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
-                                  <input type="radio" name={q.id} value={opt} className="w-4 h-4" />
+                                  <input
+                                    type="radio"
+                                    name={q.id}
+                                    value={opt}
+                                    checked={assignmentAnswers[q.id] === opt}
+                                    onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })}
+                                    className="w-4 h-4"
+                                  />
                                   <span className="text-sm">{opt}</span>
                                 </label>
                               ))}
                             </div>
                           )}
-                          {q.type === 'truefalse' && (
+                          {q.type === 'TRUEFALSE' && (
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline">صحيح</Button>
-                              <Button size="sm" variant="outline">خطأ</Button>
+                              {['true', 'false'].map(opt => (
+                                <Button
+                                  key={opt}
+                                  size="sm"
+                                  variant={assignmentAnswers[q.id] === opt ? 'default' : 'outline'}
+                                  onClick={() => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: opt })}
+                                >
+                                  {opt === 'true' ? 'صحيح' : 'خطأ'}
+                                </Button>
+                              ))}
                             </div>
                           )}
-                          {q.type === 'fill' && <Input placeholder="اكتب إجابتك..." />}
-                          {q.type === 'essay' && <Textarea rows={3} placeholder="اكتب إجابتك..." />}
+                          {q.type === 'FILL' && (
+                            <Input
+                              placeholder="اكتب إجابتك..."
+                              value={assignmentAnswers[q.id] || ''}
+                              onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })}
+                            />
+                          )}
+                          {q.type === 'ESSAY' && (
+                            <Textarea
+                              rows={3}
+                              placeholder="اكتب إجابتك..."
+                              value={assignmentAnswers[q.id] || ''}
+                              onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })}
+                            />
+                          )}
                         </div>
                       ))}
-                      <Button className="w-full">تسليم الواجب</Button>
+                      <Button className="w-full" onClick={handleAssignmentSubmit}>تسليم الواجب</Button>
                     </CardContent>
                   </Card>
                 ) : (
@@ -224,7 +263,6 @@ export default function LessonPage() {
                 )}
               </TabsContent>
 
-              {/* Exam Tab */}
               <TabsContent value="exam">
                 {exam ? (
                   exam.isHtmlExam ? (
@@ -234,15 +272,14 @@ export default function LessonPage() {
                       studentName={currentUser?.name || ''}
                       onComplete={(score, total) => {
                         addGrade({
-                          id: `g-${Date.now()}`,
-                          studentId: currentUser?.id || '',
-                          studentName: currentUser?.name || '',
-                          itemId: exam.id,
-                          itemType: 'exam',
-                          title: exam.title,
                           score,
                           totalScore: total,
-                          date: new Date().toISOString().split('T')[0],
+                          itemType: 'exam',
+                          itemId: exam.id,
+                          title: exam.title,
+                          studentId: currentUser?.id,
+                          studentName: currentUser?.name,
+                          examId: exam.id,
                         });
                         toast.success('تم حفظ نتيجتك');
                       }}
@@ -257,16 +294,16 @@ export default function LessonPage() {
                         <CardDescription>{exam.description}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        {exam.questions.map((q, i) => (
+                        {(exam.questions || []).map((q: any, i: number) => (
                           <div key={q.id} className="p-4 rounded-lg border">
                             <div className="flex items-start gap-2 mb-3">
                               <Badge>{i + 1}</Badge>
                               <Badge variant="secondary">{q.points} نقطة</Badge>
                               <p className="flex-1 font-medium">{q.text}</p>
                             </div>
-                            {q.type === 'mcq' && (
+                            {q.type === 'MCQ' && (
                               <div className="grid gap-2">
-                                {q.options?.map(opt => (
+                                {(q.options || []).map((opt: string) => (
                                   <label key={opt} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
                                     <input type="radio" name={q.id} value={opt} className="w-4 h-4" />
                                     <span className="text-sm">{opt}</span>
@@ -274,13 +311,13 @@ export default function LessonPage() {
                                 ))}
                               </div>
                             )}
-                            {q.type === 'truefalse' && (
+                            {q.type === 'TRUEFALSE' && (
                               <div className="flex gap-2">
                                 <Button size="sm" variant="outline">صحيح</Button>
                                 <Button size="sm" variant="outline">خطأ</Button>
                               </div>
                             )}
-                            {q.type === 'fill' && <Input placeholder="اكتب إجابتك..." />}
+                            {q.type === 'FILL' && <Input placeholder="اكتب إجابتك..." />}
                           </div>
                         ))}
                         <Button className="w-full" size="lg">تسليم الامتحان</Button>
@@ -293,7 +330,6 @@ export default function LessonPage() {
               </TabsContent>
             </Tabs>
 
-            {/* Comments */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -302,7 +338,6 @@ export default function LessonPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Add Comment */}
                 <div className="space-y-3">
                   <div>
                     <Label>تقييمك</Label>
@@ -327,7 +362,7 @@ export default function LessonPage() {
                 </div>
 
                 <div className="space-y-3 pt-3 border-t">
-                  {lessonComments.map(c => (
+                  {lessonComments.map((c: any) => (
                     <div key={c.id} className="flex items-start gap-3">
                       <Avatar><AvatarFallback>{c.userAvatar}</AvatarFallback></Avatar>
                       <div className="flex-1">
@@ -336,11 +371,11 @@ export default function LessonPage() {
                           {c.rating && (
                             <div className="flex gap-0.5">
                               {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} className={`w-3 h-3 ${i < c.rating! ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
+                                <Star key={i} className={`w-3 h-3 ${i < c.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
                               ))}
                             </div>
                           )}
-                          <span className="text-xs text-muted-foreground">{c.createdAt}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleDateString('ar-EG')}</span>
                         </div>
                         <p className="text-sm text-muted-foreground">{c.text}</p>
                       </div>
@@ -351,9 +386,7 @@ export default function LessonPage() {
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-4">
-            {/* Teacher */}
             {teacher && (
               <Card>
                 <CardHeader><CardTitle className="text-lg">المدرس</CardTitle></CardHeader>
@@ -364,18 +397,18 @@ export default function LessonPage() {
                       <div className="font-bold">{teacher.name}</div>
                       <div className="flex items-center gap-1">
                         <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        <span className="text-sm">{teacher.rating}</span>
+                        <span className="text-sm">{teacher.rating || 0}</span>
                       </div>
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">{teacher.bio}</p>
                   <div className="grid grid-cols-2 gap-2 text-center text-sm">
                     <div className="p-2 rounded-lg bg-muted/50">
-                      <div className="font-bold">{teacher.studentsCount}</div>
+                      <div className="font-bold">{teacher.studentsCount || 0}</div>
                       <div className="text-xs text-muted-foreground">طالب</div>
                     </div>
                     <div className="p-2 rounded-lg bg-muted/50">
-                      <div className="font-bold">{teacher.lessonsCount}</div>
+                      <div className="font-bold">{teacher.lessonsCount || 0}</div>
                       <div className="text-xs text-muted-foreground">درس</div>
                     </div>
                   </div>
@@ -383,45 +416,25 @@ export default function LessonPage() {
               </Card>
             )}
 
-            {/* Quick Actions */}
             <Card>
               <CardHeader><CardTitle className="text-lg">إجراءات سريعة</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 <Button variant="outline" className="w-full justify-start" onClick={() => setTab('pdfs')}>
                   <FileText className="w-4 h-4 ml-2" />
-                  ملفات PDF ({lesson.pdfs.length})
+                  ملفات PDF ({(lesson.pdfs || []).length})
                 </Button>
                 <Button variant="outline" className="w-full justify-start" onClick={() => setTab('assignment')}>
                   <BookOpen className="w-4 h-4 ml-2" />
-                  الواجب
+                  الواجب {assignment ? '✓' : '(لا يوجد)'}
                 </Button>
                 <Button variant="outline" className="w-full justify-start" onClick={() => setTab('exam')}>
                   <Award className="w-4 h-4 ml-2" />
-                  الامتحان
+                  الامتحان {exam ? '✓' : '(لا يوجد)'}
                 </Button>
                 <Button variant="outline" className="w-full justify-start" onClick={() => toggleFavorite(lesson.id)}>
                   <Heart className={`w-4 h-4 ml-2 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
                   {isFavorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Related Lessons */}
-            <Card>
-              <CardHeader><CardTitle className="text-lg">دروس ذات صلة</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {lessons.filter(l => l.id !== lesson.id).slice(0, 3).map(l => (
-                  <div key={l.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                    onClick={() => useStore.getState().openLesson(l.id)}>
-                    <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-                      <Play className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium line-clamp-1">{l.title}</div>
-                      <div className="text-xs text-muted-foreground">{l.videoDuration}</div>
-                    </div>
-                  </div>
-                ))}
               </CardContent>
             </Card>
           </div>

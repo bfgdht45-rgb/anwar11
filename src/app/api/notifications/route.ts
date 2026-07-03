@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/notifications?userId=xxx
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,8 +9,7 @@ export async function GET(request: NextRequest) {
       OR: userId ? [{ userId }, { userId: null }] : [{ userId: null }],
     };
     const notifications = await db.notification.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
+      where, orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json({ notifications });
   } catch (error) {
@@ -19,7 +17,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/notifications
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -37,15 +34,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/notifications?id=xxx (mark as read)
 export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'معرف الإشعار مطلوب' }, { status: 400 });
     const notification = await db.notification.update({
-      where: { id },
-      data: { read: true },
+      where: { id }, data: { read: true },
     });
     return NextResponse.json({ notification });
   } catch (error) {

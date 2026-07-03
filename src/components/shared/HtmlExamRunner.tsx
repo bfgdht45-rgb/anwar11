@@ -181,7 +181,7 @@ export default function HtmlExamRunner({ exam, studentId, studentName, onComplet
             ref={iframeRef}
             srcDoc={exam.htmlContent}
             className="w-full min-h-[600px] border-t"
-            sandbox="allow-scripts allow-same-origin allow-forms"
+            sandbox="allow-scripts"
             title="حل الامتحان"
           />
         )}
@@ -204,7 +204,7 @@ export default function HtmlExamRunner({ exam, studentId, studentName, onComplet
         ref={iframeRef}
         srcDoc={exam.htmlContent}
         className="w-full min-h-[800px] rounded-lg border"
-        sandbox="allow-scripts allow-same-origin allow-forms"
+        sandbox="allow-scripts"
         title={exam.title}
       />
     </div>
@@ -215,11 +215,6 @@ export default function HtmlExamRunner({ exam, studentId, studentName, onComplet
 export function HtmlExamBuilder({ onSave, initialHtml }: { onSave: (html: string) => void; initialHtml?: string }) {
   const [html, setHtml] = useState(initialHtml || getDefaultHtmlTemplate());
   const [preview, setPreview] = useState(false);
-
-  // حفظ تلقائي على كل تغيير
-  useEffect(() => {
-    onSave(html);
-  }, [html, onSave]);
 
   const handleSave = () => {
     if (!html.trim()) {
@@ -248,7 +243,7 @@ export function HtmlExamBuilder({ onSave, initialHtml }: { onSave: (html: string
         <iframe
           srcDoc={html}
           className="w-full min-h-[600px] rounded-lg border"
-          sandbox="allow-scripts allow-same-origin allow-forms"
+          sandbox="allow-scripts"
           title="معاينة الامتحان"
         />
       ) : (
