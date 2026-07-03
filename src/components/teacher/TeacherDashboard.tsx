@@ -158,8 +158,20 @@ function MyLessons() {
 function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQuestions: (q: any[]) => void }) {
   const [newQ, setNewQ] = useState({
     text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5,
-    options: ['', '', '', ''],
+    options: ['', '', '', ''], imageUrl: '',
   });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // تحويل الصورة لـ base64 عشان تخزينها مباشرة
+      const reader = new FileReader();
+      reader.onload = () => {
+        setNewQ({ ...newQ, imageUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const addQuestion = () => {
     if (!newQ.text || !newQ.correctAnswer) {
@@ -172,7 +184,7 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
       options: newQ.type === 'MCQ' ? newQ.options.filter(o => o) : undefined,
     };
     setQuestions([...questions, q]);
-    setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, options: ['', '', '', ''] });
+    setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, options: ['', '', '', ''], imageUrl: '' });
     toast.success('تم إضافة السؤال');
   };
 
@@ -184,6 +196,7 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
             <div key={q.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
               <Badge>{i + 1}</Badge>
               <span className="flex-1 text-sm line-clamp-1">{q.text}</span>
+              {q.imageUrl && <Badge variant="secondary">📷 صورة</Badge>}
               <Badge variant="secondary">{q.type}</Badge>
               <Badge variant="secondary">{q.points} نقطة</Badge>
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}>
@@ -196,6 +209,22 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
 
       <div className="border rounded-lg p-3 space-y-2">
         <div><Label>نص السؤال</Label><Textarea value={newQ.text} onChange={e => setNewQ({ ...newQ, text: e.target.value })} /></div>
+
+        {/* رفع صورة للسؤال */}
+        <div>
+          <Label>صورة للسؤال (اختياري)</Label>
+          <div className="flex gap-2 items-center">
+            <Input type="file" accept="image/*" onChange={handleImageUpload} className="flex-1" />
+            {newQ.imageUrl && (
+              <div className="relative">
+                <img src={newQ.imageUrl} alt="معاينة" className="w-16 h-16 object-cover rounded-lg border" />
+                <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => setNewQ({ ...newQ, imageUrl: '' })}>
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-3 gap-2">
           <div>
             <Label>النوع</Label>
@@ -335,12 +364,16 @@ function AddLesson() {
           <div><Label>الوصف</Label><Textarea value={lesson.description} onChange={e => setLesson({ ...lesson, description: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>الوحدة</Label>
+              <Label>المرحلة والوحدة</Label>
               <Select value={lesson.unitId || defaultUnitId} onValueChange={v => setLesson({ ...lesson, unitId: v })}>
-                <SelectTrigger><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger><SelectValue placeholder="اختر المرحلة والوحدة" /></SelectTrigger>
+                <SelectContent className="max-h-[300px]">
                   {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات</SelectItem>}
-                  {units.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}
+                  {units.map((u: any) => {
+                    const stageText = u.stageId === 'high' ? 'ثانوي' : 'إعدادي';
+                    const yearText = u.yearId === 'first' ? 'أولى' : u.yearId === 'second' ? 'ثانية' : 'ثالثة';
+                    return <SelectItem key={u.id} value={u.id}>{stageText} - {yearText} - {u.title}</SelectItem>;
+                  })}
                 </SelectContent>
               </Select>
             </div>

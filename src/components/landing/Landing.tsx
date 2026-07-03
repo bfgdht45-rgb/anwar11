@@ -12,7 +12,7 @@ import {
   Calculator, Users, BookOpen, Award, Star, Play, ChevronLeft, ChevronRight,
   GraduationCap, Trophy, TrendingUp, Heart, Mail, Phone, MapPin, Facebook,
   Twitter, Youtube, Instagram, Menu, X, Moon, Sun, Sparkles, ArrowLeft,
-  CheckCircle2, Clock, FileText, Video
+  MessageCircle, CheckCircle2, Clock, FileText, Video
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -432,28 +432,35 @@ export default function Landing() {
             <h2 className="text-3xl md:text-4xl font-bold mb-3">تواصل معنا</h2>
             <p className="text-muted-foreground">فريق الدعم جاهز لمساعدتك في أي وقت</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
-              { icon: Phone, title: 'الهاتف', value: '01000000000', desc: 'من 9 صباحاً حتى 9 مساءً' },
-              { icon: Mail, title: 'البريد الإلكتروني', value: 'info@math.com', desc: 'نرد خلال 24 ساعة' },
-              { icon: MapPin, title: 'العنوان', value: 'القاهرة، مصر', desc: 'جمهورية مصر العربية' },
+              { icon: Phone, title: 'اتصل بنا', value: '01000000000', desc: 'من 9 صباحاً حتى 9 مساءً', link: 'tel:01000000000' },
+              { icon: MessageCircle, title: 'واتساب', value: '01000000000', desc: 'راسلنا على واتساب', link: 'https://wa.me/201000000000' },
+              { icon: Mail, title: 'البريد الإلكتروني', value: 'info@math.com', desc: 'نرد خلال 24 ساعة', link: 'mailto:info@math.com' },
+              { icon: MapPin, title: 'العنوان', value: 'القاهرة، مصر', desc: 'جمهورية مصر العربية', link: '#' },
             ].map(item => (
-              <Card key={item.title}>
+              <Card key={item.title} className="hover:shadow-lg transition-shadow">
                 <CardContent className="pt-6 text-center">
-                  <item.icon className="w-10 h-10 mx-auto mb-3 text-emerald-600" />
-                  <h3 className="font-bold mb-1">{item.title}</h3>
-                  <p className="text-emerald-600 font-medium">{item.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                  <a href={item.link} target={item.link.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
+                    <item.icon className="w-10 h-10 mx-auto mb-3 text-emerald-600" />
+                    <h3 className="font-bold mb-1">{item.title}</h3>
+                    <p className="text-emerald-600 font-medium">{item.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                  </a>
                 </CardContent>
               </Card>
             ))}
           </div>
           <div className="flex justify-center gap-3 mt-8">
-            {[Facebook, Twitter, Youtube, Instagram].map((Icon, i) => (
-              <Button key={i} variant="outline" size="icon" className="rounded-full">
-                <Icon className="w-5 h-5" />
-              </Button>
-            ))}
+            <Button variant="outline" size="icon" className="rounded-full" asChild>
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"><Facebook className="w-5 h-5" /></a>
+            </Button>
+            <Button variant="outline" size="icon" className="rounded-full" asChild>
+              <a href="https://wa.me/201000000000" target="_blank" rel="noopener noreferrer"><MessageCircle className="w-5 h-5" /></a>
+            </Button>
+            <Button variant="outline" size="icon" className="rounded-full" asChild>
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer"><Youtube className="w-5 h-5" /></a>
+            </Button>
           </div>
         </div>
       </section>

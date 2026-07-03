@@ -73,16 +73,26 @@ export async function GET() {
     // ===== الوحدات =====
     log.push('📚 إنشاء الوحدات...');
     const unitsData = [
-      { id: 'unit-001', title: 'الأعداد النسبية', stageId: 'middle', yearId: 'first', order: 1 },
-      { id: 'unit-002', title: 'الجبر والمعادلات', stageId: 'middle', yearId: 'first', order: 2 },
-      { id: 'unit-003', title: 'النسبة والتناسب', stageId: 'middle', yearId: 'second', order: 1 },
-      { id: 'unit-004', title: 'الهندسة', stageId: 'middle', yearId: 'second', order: 2 },
-      { id: 'unit-005', title: 'الإحصاء', stageId: 'middle', yearId: 'third', order: 1 },
-      { id: 'unit-006', title: 'الجبر', stageId: 'high', yearId: 'first', order: 1 },
-      { id: 'unit-007', title: 'التفاضل', stageId: 'high', yearId: 'second', order: 1 },
-      { id: 'unit-008', title: 'الهندسة التحليلية', stageId: 'high', yearId: 'second', order: 2 },
-      { id: 'unit-009', title: 'التكامل', stageId: 'high', yearId: 'third', order: 1 },
-      { id: 'unit-010', title: 'التفاضل المتقدم', stageId: 'high', yearId: 'third', order: 2 },
+      // إعدادي - أولى
+      { id: 'unit-m1-1', title: 'الأعداد النسبية', stageId: 'middle', yearId: 'first', order: 1 },
+      { id: 'unit-m1-2', title: 'الجبر والمعادلات', stageId: 'middle', yearId: 'first', order: 2 },
+      // إعدادي - ثانية
+      { id: 'unit-m2-1', title: 'النسبة والتناسب', stageId: 'middle', yearId: 'second', order: 1 },
+      { id: 'unit-m2-2', title: 'الهندسة', stageId: 'middle', yearId: 'second', order: 2 },
+      // إعدادي - ثالثة
+      { id: 'unit-m3-1', title: 'الإحصاء', stageId: 'middle', yearId: 'third', order: 1 },
+      { id: 'unit-m3-2', title: 'الهندسة الفراغية', stageId: 'middle', yearId: 'third', order: 2 },
+      // ثانوي - أولى
+      { id: 'unit-h1-1', title: 'الجبر', stageId: 'high', yearId: 'first', order: 1 },
+      { id: 'unit-h1-2', title: 'حساب المثلثات', stageId: 'high', yearId: 'first', order: 2 },
+      // ثانوي - ثانية
+      { id: 'unit-h2-1', title: 'التفاضل', stageId: 'high', yearId: 'second', order: 1 },
+      { id: 'unit-h2-2', title: 'الهندسة التحليلية', stageId: 'high', yearId: 'second', order: 2 },
+      { id: 'unit-h2-3', title: 'الاستاتيكا', stageId: 'high', yearId: 'second', order: 3 },
+      // ثانوي - ثالثة
+      { id: 'unit-h3-1', title: 'التكامل', stageId: 'high', yearId: 'third', order: 1 },
+      { id: 'unit-h3-2', title: 'التفاضل المتقدم', stageId: 'high', yearId: 'third', order: 2 },
+      { id: 'unit-h3-3', title: 'الديناميكا', stageId: 'high', yearId: 'third', order: 3 },
     ];
     for (const u of unitsData) {
       await executeSQL(`

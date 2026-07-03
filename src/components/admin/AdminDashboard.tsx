@@ -485,27 +485,29 @@ function ManageLessons() {
             <div className="space-y-3">
               <div><Label>عنوان الدرس *</Label><Input value={newLesson.title} onChange={e => setNewLesson({ ...newLesson, title: e.target.value })} /></div>
               <div><Label>الوصف</Label><Textarea value={newLesson.description} onChange={e => setNewLesson({ ...newLesson, description: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>الوحدة</Label>
-                  <Select value={newLesson.unitId || defaultUnitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
-                    <SelectTrigger><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
-                    <SelectContent>
-                      {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات - شغل /api/seed</SelectItem>}
-                      {units.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>المعلم</Label>
-                  <Select value={newLesson.teacherId || defaultTeacherId} onValueChange={v => setNewLesson({ ...newLesson, teacherId: v })}>
-                    <SelectTrigger><SelectValue placeholder="اختر المعلم" /></SelectTrigger>
-                    <SelectContent>
-                      {teachers.length === 0 && <SelectItem value="none" disabled>لا يوجد معلمين</SelectItem>}
-                      {teachers.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.avatar} {t.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label>المرحلة والوحدة</Label>
+                <Select value={newLesson.unitId || defaultUnitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
+                  <SelectTrigger><SelectValue placeholder="اختر المرحلة والوحدة" /></SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات - شغل /api/seed</SelectItem>}
+                    {units.map((u: any) => {
+                      const stageText = u.stageId === 'high' ? 'ثانوي' : 'إعدادي';
+                      const yearText = u.yearId === 'first' ? 'أولى' : u.yearId === 'second' ? 'ثانية' : 'ثالثة';
+                      return <SelectItem key={u.id} value={u.id}>{stageText} - {yearText} - {u.title}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>المعلم</Label>
+                <Select value={newLesson.teacherId || defaultTeacherId} onValueChange={v => setNewLesson({ ...newLesson, teacherId: v })}>
+                  <SelectTrigger><SelectValue placeholder="اختر المعلم" /></SelectTrigger>
+                  <SelectContent>
+                    {teachers.length === 0 && <SelectItem value="none" disabled>لا يوجد معلمين</SelectItem>}
+                    {teachers.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.avatar} {t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -823,9 +825,31 @@ function ManageExams() {
 
 // ===== Question Bank =====
 function QuestionBank() {
-  const { questionBank, addQuestion, deleteQuestion } = useStore() as any;
+  const { questionBank, addQuestion, deleteQuestion, units } = useStore() as any;
   const [showAdd, setShowAdd] = useState(false);
-  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ' as any, difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first' });
+  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ' as any, difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', unitId: '', imageUrl: '' });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setNewQ({ ...newQ, imageUrl: reader.result as string });
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!newQ.text || !newQ.correctAnswer) {
+      toast.error('أدخل السؤال والإجابة');
+      return;
+    }
+    const success = await addQuestion({ ...newQ, unitId: newQ.unitId || undefined });
+    if (success) {
+      toast.success('تم إضافة السؤال');
+      setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', unitId: '', imageUrl: '' });
+      setShowAdd(false);
+    }
+  };
 
   return (
     <Card>
@@ -836,18 +860,107 @@ function QuestionBank() {
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">سيتم إضافة محرر الأسئلة الكامل قريباً. الأسئلة الحالية تظهر في الدروس والواجبات.</p>
+        <p className="text-sm text-muted-foreground mb-4">الأسئلة هنا تظهر في الدروس والواجبات حسب التصنيف.</p>
+
+        {questionBank?.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {questionBank.map((q: any) => (
+              <div key={q.id} className="flex items-center gap-2 p-3 rounded-lg border">
+                {q.imageUrl && <img src={q.imageUrl} alt="سؤال" className="w-12 h-12 object-cover rounded" />}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium line-clamp-1">{q.text}</div>
+                  <div className="flex gap-1 mt-1">
+                    <Badge variant="secondary">{q.type}</Badge>
+                    <Badge variant="secondary">{q.difficulty}</Badge>
+                    <Badge variant="secondary">{q.points} نقطة</Badge>
+                  </div>
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => deleteQuestion(q.id)}>
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>إضافة سؤال</DialogTitle></DialogHeader>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>إضافة سؤال لبنك الأسئلة</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>نص السؤال</Label><Textarea value={newQ.text} onChange={e => setNewQ({ ...newQ, text: e.target.value })} /></div>
+
+              {/* رفع صورة */}
+              <div>
+                <Label>صورة للسؤال (اختياري)</Label>
+                <div className="flex gap-2 items-center">
+                  <Input type="file" accept="image/*" onChange={handleImageUpload} className="flex-1" />
+                  {newQ.imageUrl && (
+                    <div className="relative">
+                      <img src={newQ.imageUrl} alt="معاينة" className="w-16 h-16 object-cover rounded-lg border" />
+                      <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => setNewQ({ ...newQ, imageUrl: '' })}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>النوع</Label>
+                  <Select value={newQ.type} onValueChange={(v: any) => setNewQ({ ...newQ, type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MCQ">اختيار من متعدد</SelectItem>
+                      <SelectItem value="TRUEFALSE">صح / خطأ</SelectItem>
+                      <SelectItem value="FILL">أكمل الفراغ</SelectItem>
+                      <SelectItem value="ESSAY">مقالي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>الصعوبة</Label>
+                  <Select value={newQ.difficulty} onValueChange={(v: any) => setNewQ({ ...newQ, difficulty: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EASY">سهل</SelectItem>
+                      <SelectItem value="MEDIUM">متوسط</SelectItem>
+                      <SelectItem value="HARD">صعب</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>المرحلة</Label>
+                  <Select value={newQ.stageId} onValueChange={v => setNewQ({ ...newQ, stageId: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="middle">إعدادي</SelectItem>
+                      <SelectItem value="high">ثانوي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>السنة</Label>
+                  <Select value={newQ.yearId} onValueChange={v => setNewQ({ ...newQ, yearId: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="first">الأولى</SelectItem>
+                      <SelectItem value="second">الثانية</SelectItem>
+                      <SelectItem value="third">الثالثة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div><Label>الإجابة الصحيحة</Label><Input value={newQ.correctAnswer} onChange={e => setNewQ({ ...newQ, correctAnswer: e.target.value })} /></div>
               <div><Label>الدرجة</Label><Input type="number" value={newQ.points} onChange={e => setNewQ({ ...newQ, points: +e.target.value })} /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
-              <Button onClick={() => { toast.success('سيتم إضافة محرر كامل قريباً'); setShowAdd(false); }}>حفظ</Button>
+              <Button onClick={handleAdd}>حفظ</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
