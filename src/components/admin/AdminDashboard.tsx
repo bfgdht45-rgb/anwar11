@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout, StatCard, EmptyState } from '@/components/shared/DashboardLayout';
 import { HtmlExamBuilder } from '@/components/shared/HtmlExamRunner';
 import { useStore } from '@/lib/store';
-import { demoStats, stages, units as initialUnits } from '@/lib/data';
+import { stages } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,19 +13,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, Video, FileText, Award,
   DollarSign, BarChart3, Bell, Ticket, CreditCard, MessageSquare, HelpCircle,
   Database, Shield, Plus, Edit, Trash2, Eye, Search, TrendingUp, Crown, Save,
-  CheckCircle2, XCircle, Upload
+  CheckCircle2, XCircle, Upload, Play
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import type { Exam } from '@/lib/types';
+import type { Exam, Lesson } from '@/lib/types';
 
 const navItems = [
   { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
@@ -50,6 +49,18 @@ const navItems = [
 export default function AdminDashboard() {
   const [activeItem, setActiveItem] = useState('dashboard');
   const store = useStore();
+
+  // Fetch data on mount
+  useEffect(() => {
+    store.fetchLessons();
+    store.fetchExams();
+    store.fetchUsers();
+    store.fetchUnits();
+    store.fetchNotifications();
+    store.fetchCoupons();
+    store.fetchPayments();
+    store.fetchStats();
+  }, []);
 
   return (
     <DashboardLayout
@@ -83,13 +94,13 @@ export default function AdminDashboard() {
 
 // ===== Overview =====
 function AdminOverview() {
-  const { users, lessons, exams } = useStore();
-  const teachers = users.filter(u => u.role === 'teacher');
-  const students = users.filter(u => u.role === 'student');
+  const { users, lessons, exams, stats } = useStore();
+  const teachers = users.filter((u: any) => u.role === 'teacher');
+  const students = users.filter((u: any) => u.role === 'student');
+  const s = stats || { totalStudents: 0, totalTeachers: 0, totalSubscriptions: 0, totalVideos: 0, totalLessons: 0, totalExams: 0, totalVisits: 0, totalRevenue: 0, monthlyRevenue: [] };
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
       <Card className="overflow-hidden border-0 bg-gradient-to-l from-emerald-600 to-teal-700 text-white">
         <CardContent className="p-6 flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -98,30 +109,22 @@ function AdminOverview() {
               <span className="text-sm opacity-90">لوحة تحكم الإدارة</span>
             </div>
             <h2 className="text-2xl font-bold mb-1">مرحباً أيها المدير 👋</h2>
-            <p className="opacity-90">إليك ملخص أداء المنصة اليوم</p>
+            <p className="opacity-90">إليك ملخص أداء المنصة</p>
           </div>
           <div className="text-left">
-            <div className="text-3xl font-bold">{demoStats.totalRevenue.toLocaleString('ar-EG')}</div>
+            <div className="text-3xl font-bold">{(s.totalRevenue || 0).toLocaleString('ar-EG')}</div>
             <div className="text-sm opacity-90">ج.م إجمالي الأرباح</div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="عدد الطلاب" value={demoStats.totalStudents} color="text-emerald-600" trend="+12%" />
-        <StatCard icon={GraduationCap} label="عدد المعلمين" value={demoStats.totalTeachers} color="text-purple-600" />
-        <StatCard icon={CreditCard} label="الاشتراكات النشطة" value={demoStats.totalSubscriptions} color="text-amber-600" trend="+8%" />
-        <StatCard icon={Video} label="عدد الفيديوهات" value={demoStats.totalVideos} color="text-rose-600" />
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={BookOpen} label="عدد الدروس" value={demoStats.totalLessons} color="text-blue-600" />
-        <StatCard icon={Award} label="عدد الامتحانات" value={demoStats.totalExams} color="text-indigo-600" />
-        <StatCard icon={Eye} label="عدد الزيارات" value={demoStats.totalVisits} color="text-cyan-600" trend="+24%" />
-        <StatCard icon={DollarSign} label="إجمالي الأرباح" value={`${demoStats.totalRevenue.toLocaleString('ar-EG')} ج.م`} color="text-emerald-600" trend="+18%" />
+        <StatCard icon={Users} label="عدد الطلاب" value={s.totalStudents || students.length} color="text-emerald-600" trend="+12%" />
+        <StatCard icon={GraduationCap} label="عدد المعلمين" value={s.totalTeachers || teachers.length} color="text-purple-600" />
+        <StatCard icon={Video} label="عدد الفيديوهات" value={s.totalVideos || lessons.length} color="text-rose-600" />
+        <StatCard icon={BookOpen} label="عدد الدروس" value={s.totalLessons || lessons.length} color="text-blue-600" />
       </div>
 
-      {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -132,73 +135,30 @@ function AdminOverview() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={demoStats.monthlyRevenue}>
+              <LineChart data={s.monthlyRevenue || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                <Tooltip />
                 <Line type="monotone" dataKey="revenue" stroke="#0f766e" strokeWidth={3} dot={{ fill: '#0f766e', r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-amber-600" />
-              الزيارات الأسبوعية
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={demoStats.weeklyVisits}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
-                <Bar dataKey="visits" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">أحدث المعلمين</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg">آخر النشاطات</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {teachers.slice(0, 5).map(t => (
+            {teachers.slice(0, 3).map((t: any) => (
               <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
                 <Avatar className="text-xl"><AvatarFallback className="text-xl">{t.avatar}</AvatarFallback></Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{t.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">{t.bio}</div>
+                  <div className="text-xs text-muted-foreground truncate">{t.bio || 'مدرس رياضيات'}</div>
                 </div>
-                <Badge variant="secondary">{t.studentsCount} طالب</Badge>
+                <Badge variant="secondary">{t.studentsCount || 0} طالب</Badge>
               </div>
             ))}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">أحدث الطلاب</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {students.slice(0, 5).map(s => (
-              <div key={s.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                <Avatar className="text-xl"><AvatarFallback className="text-xl">{s.avatar}</AvatarFallback></Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{s.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">{s.email}</div>
-                </div>
-                <Badge variant={s.subscriptionStatus === 'active' ? 'default' : 'outline'}>
-                  {s.subscriptionStatus === 'active' ? 'نشط' : 'معلق'}
-                </Badge>
-              </div>
-            ))}
+            {teachers.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">لا يوجد معلمين</p>}
           </CardContent>
         </Card>
       </div>
@@ -209,32 +169,33 @@ function AdminOverview() {
 // ===== Manage Teachers =====
 function ManageTeachers() {
   const { users, deleteUser, addUser } = useStore();
-  const teachers = users.filter(u => u.role === 'teacher');
+  const teachers = users.filter((u: any) => u.role === 'teacher');
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newTeacher, setNewTeacher] = useState({ name: '', email: '', bio: '' });
 
-  const filtered = teachers.filter(t => t.name.includes(search) || t.email.includes(search));
+  const filtered = teachers.filter((t: any) => t.name.includes(search) || t.email.includes(search));
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newTeacher.name || !newTeacher.email) {
-      toast.error('أدخل الاسم والبريد الإلكتروني');
+      toast.error('أدخل الاسم والبريد');
       return;
     }
-    addUser({
-      id: `teacher-${Date.now()}`,
+    const success = await addUser({
       name: newTeacher.name,
       email: newTeacher.email,
       password: 'teacher123',
       role: 'teacher',
       avatar: '👨‍🏫',
       bio: newTeacher.bio || 'مدرس رياضيات',
-      rating: 0, studentsCount: 0, lessonsCount: 0, totalEarnings: 0,
-      specialties: [], createdAt: new Date().toISOString().split('T')[0],
-    });
-    toast.success('تم إضافة المعلم بنجاح');
-    setNewTeacher({ name: '', email: '', bio: '' });
-    setShowAdd(false);
+    } as any);
+    if (success) {
+      toast.success('تم إضافة المعلم. كلمة المرور: teacher123');
+      setNewTeacher({ name: '', email: '', bio: '' });
+      setShowAdd(false);
+    } else {
+      toast.error('فشل في الإضافة');
+    }
   };
 
   return (
@@ -246,8 +207,7 @@ function ManageTeachers() {
             <CardDescription>إضافة وتعديل وحذف المعلمين</CardDescription>
           </div>
           <Button onClick={() => setShowAdd(true)}>
-            <Plus className="w-4 h-4 ml-2" />
-            إضافة معلم
+            <Plus className="w-4 h-4 ml-2" /> إضافة معلم
           </Button>
         </div>
       </CardHeader>
@@ -263,12 +223,11 @@ function ManageTeachers() {
               <TableHead>التقييم</TableHead>
               <TableHead>الطلاب</TableHead>
               <TableHead>الدروس</TableHead>
-              <TableHead>الأرباح</TableHead>
               <TableHead>إجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(t => (
+            {filtered.map((t: any) => (
               <TableRow key={t.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -282,15 +241,15 @@ function ManageTeachers() {
                 <TableCell>⭐ {t.rating || 0}</TableCell>
                 <TableCell>{t.studentsCount || 0}</TableCell>
                 <TableCell>{t.lessonsCount || 0}</TableCell>
-                <TableCell>{(t.totalEarnings || 0).toLocaleString('ar-EG')} ج.م</TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost"><Edit className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => { deleteUser(t.id); toast.success('تم الحذف'); }}>
-                      <Trash2 className="w-4 h-4 text-rose-500" />
-                    </Button>
-                  </div>
+                  <Button size="icon" variant="ghost" onClick={async () => {
+                    if (confirm(`حذف المعلم ${t.name}؟`)) {
+                      await deleteUser(t.id);
+                      toast.success('تم الحذف');
+                    }
+                  }}>
+                    <Trash2 className="w-4 h-4 text-rose-500" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -301,7 +260,7 @@ function ManageTeachers() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>إضافة معلم جديد</DialogTitle>
-              <DialogDescription>أدخل بيانات المعلم الجديد</DialogDescription>
+              <DialogDescription>كلمة المرور الافتراضية: teacher123</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
               <div><Label>الاسم</Label><Input value={newTeacher.name} onChange={e => setNewTeacher({ ...newTeacher, name: e.target.value })} /></div>
@@ -322,10 +281,10 @@ function ManageTeachers() {
 // ===== Manage Students =====
 function ManageStudents() {
   const { users, deleteUser, updateUser } = useStore();
-  const students = users.filter(u => u.role === 'student');
+  const students = users.filter((u: any) => u.role === 'student');
   const [search, setSearch] = useState('');
 
-  const filtered = students.filter(s => s.name.includes(search) || s.email.includes(search));
+  const filtered = students.filter((s: any) => s.name.includes(search) || s.email.includes(search));
 
   return (
     <Card>
@@ -343,14 +302,12 @@ function ManageStudents() {
             <TableRow>
               <TableHead>الطالب</TableHead>
               <TableHead>المرحلة</TableHead>
-              <TableHead>السنة</TableHead>
               <TableHead>الاشتراك</TableHead>
-              <TableHead>الدروس المكتملة</TableHead>
               <TableHead>إجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(s => (
+            {filtered.map((s: any) => (
               <TableRow key={s.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -362,20 +319,26 @@ function ManageStudents() {
                   </div>
                 </TableCell>
                 <TableCell>{s.stage === 'high' ? 'ثانوي' : 'إعدادي'}</TableCell>
-                <TableCell>{s.year === 'first' ? 'الأولى' : s.year === 'second' ? 'الثانية' : 'الثالثة'}</TableCell>
                 <TableCell>
                   <Badge variant={s.subscriptionStatus === 'active' ? 'default' : 'outline'}>
                     {s.subscriptionStatus === 'active' ? 'نشط' : 'معلق'}
                   </Badge>
                 </TableCell>
-                <TableCell>{s.completedLessons?.length || 0}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => updateUser(s.id, { subscriptionStatus: s.subscriptionStatus === 'active' ? 'pending' : 'active' })}>
+                    <Button size="icon" variant="ghost" onClick={async () => {
+                      const newStatus = s.subscriptionStatus === 'active' ? 'pending' : 'active';
+                      await updateUser(s.id, { subscriptionStatus: newStatus });
+                      toast.success(newStatus === 'active' ? 'تم التفعيل' : 'تم الإيقاف');
+                    }}>
                       <Shield className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => { deleteUser(s.id); toast.success('تم الحذف'); }}>
+                    <Button size="icon" variant="ghost" onClick={async () => {
+                      if (confirm(`حذف الطالب ${s.name}؟`)) {
+                        await deleteUser(s.id);
+                        toast.success('تم الحذف');
+                      }
+                    }}>
                       <Trash2 className="w-4 h-4 text-rose-500" />
                     </Button>
                   </div>
@@ -391,35 +354,77 @@ function ManageStudents() {
 
 // ===== Manage Lessons =====
 function ManageLessons() {
-  const { lessons, deleteLesson, addLesson, currentUser } = useStore();
+  const { lessons, deleteLesson, addLesson, openLesson, units, users } = useStore();
+  const teachers = users.filter((u: any) => u.role === 'teacher');
   const [showAdd, setShowAdd] = useState(false);
   const [newLesson, setNewLesson] = useState({
     title: '', description: '', videoUrl: '', videoDuration: '',
-    unitId: initialUnits[0].id, allowPdfDownload: true,
+    unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' as string,
   });
+  const [pdfs, setPdfs] = useState<{ name: string; url: string }[]>([]);
+  const [newPdf, setNewPdf] = useState({ name: '', url: '' });
+  const [examHtml, setExamHtml] = useState('');
 
-  const handleAdd = () => {
+  const defaultUnitId = newLesson.unitId || units[0]?.id || '';
+  const defaultTeacherId = newLesson.teacherId || teachers[0]?.id || '';
+
+  const handleAddPdf = () => {
+    if (!newPdf.name || !newPdf.url) {
+      toast.error('أدخل اسم الملف والرابط');
+      return;
+    }
+    setPdfs([...pdfs, newPdf]);
+    setNewPdf({ name: '', url: '' });
+    toast.success('تم إضافة الملف للقائمة');
+  };
+
+  const handleAdd = async () => {
     if (!newLesson.title || !newLesson.videoUrl) {
       toast.error('أدخل العنوان ورابط الفيديو');
       return;
     }
-    addLesson({
-      id: `lesson-${Date.now()}`,
-      unitId: newLesson.unitId,
+    if (!defaultUnitId) {
+      toast.error('لا توجد وحدات - شغل /api/seed أولاً');
+      return;
+    }
+    if (!defaultTeacherId) {
+      toast.error('لا يوجد معلمين - أضف معلم أولاً');
+      return;
+    }
+
+    const payload: any = {
+      unitId: newLesson.unitId || defaultUnitId,
+      teacherId: newLesson.teacherId || defaultTeacherId,
       title: newLesson.title,
       description: newLesson.description,
-      teacherId: currentUser?.id || 'teacher-1',
       videoUrl: newLesson.videoUrl,
-      videoSource: 'youtube',
+      videoSource: newLesson.videoSource,
       videoDuration: newLesson.videoDuration || '00:00',
-      pdfs: [], additionalFiles: [],
-      views: 0, order: lessons.length + 1,
-      createdAt: new Date().toISOString().split('T')[0],
       allowPdfDownload: newLesson.allowPdfDownload,
-    });
-    toast.success('تم إضافة الدرس');
-    setShowAdd(false);
-    setNewLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: initialUnits[0].id, allowPdfDownload: true });
+      pdfs: pdfs.map(p => ({ name: p.name, url: p.url, size: '1.2 MB', pages: 10 })),
+      additionalFiles: [],
+    };
+
+    if (examHtml.trim()) {
+      payload.exam = {
+        title: `امتحان: ${newLesson.title}`,
+        description: 'امتحان تفاعلي HTML',
+        htmlContent: examHtml,
+        durationMinutes: 30,
+        passingScore: 60,
+      };
+    }
+
+    const success = await addLesson(payload);
+    if (success) {
+      toast.success('تم إضافة الدرس بنجاح');
+      setShowAdd(false);
+      setNewLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' });
+      setPdfs([]);
+      setExamHtml('');
+    } else {
+      toast.error('فشل في إضافة الدرس');
+    }
   };
 
   return (
@@ -436,57 +441,128 @@ function ManageLessons() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {lessons.map(l => (
-            <Card key={l.id} className="overflow-hidden">
-              <div className="aspect-video bg-muted relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Video className="w-10 h-10 text-muted-foreground" />
+        {lessons.length === 0 ? (
+          <EmptyState icon={BookOpen} title="لا توجد دروس بعد" description="أضف أول درس" />
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {lessons.map((l: any) => (
+              <Card key={l.id} className="overflow-hidden">
+                <div className="aspect-video bg-muted relative flex items-center justify-center">
+                  <Play className="w-10 h-10 text-muted-foreground" />
+                  <Badge className="absolute top-2 right-2">{l.videoDuration}</Badge>
                 </div>
-                <Badge className="absolute top-2 right-2">{l.videoDuration}</Badge>
-              </div>
-              <CardContent className="p-3">
-                <h3 className="font-semibold text-sm mb-1 line-clamp-1">{l.title}</h3>
-                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{l.description}</p>
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="text-xs">{l.views} مشاهدة</Badge>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7"><Edit className="w-3.5 h-3.5" /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { deleteLesson(l.id); toast.success('تم الحذف'); }}>
-                      <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                    </Button>
+                <CardContent className="p-3">
+                  <h3 className="font-semibold text-sm mb-1 line-clamp-1">{l.title}</h3>
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{l.description}</p>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="text-xs">{l.views || 0} مشاهدة</Badge>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => openLesson(l.id)}>
+                        <Eye className="w-4 h-4 ml-1" /> عرض
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={async () => {
+                        if (confirm(`حذف الدرس "${l.title}"؟`)) {
+                          await deleteLesson(l.id);
+                          toast.success('تم الحذف');
+                        }
+                      }}>
+                        <Trash2 className="w-4 h-4 text-rose-500" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إضافة درس جديد</DialogTitle>
+              <DialogDescription>أدخل بيانات الدرس كاملة</DialogDescription>
             </DialogHeader>
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-              <div><Label>عنوان الدرس</Label><Input value={newLesson.title} onChange={e => setNewLesson({ ...newLesson, title: e.target.value })} /></div>
+            <div className="space-y-3">
+              <div><Label>عنوان الدرس *</Label><Input value={newLesson.title} onChange={e => setNewLesson({ ...newLesson, title: e.target.value })} /></div>
               <div><Label>الوصف</Label><Textarea value={newLesson.description} onChange={e => setNewLesson({ ...newLesson, description: e.target.value })} /></div>
-              <div>
-                <Label>الوحدة</Label>
-                <Select value={newLesson.unitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{initialUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>الوحدة</Label>
+                  <Select value={newLesson.unitId || defaultUnitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
+                    <SelectTrigger><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
+                    <SelectContent>
+                      {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات - شغل /api/seed</SelectItem>}
+                      {units.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>المعلم</Label>
+                  <Select value={newLesson.teacherId || defaultTeacherId} onValueChange={v => setNewLesson({ ...newLesson, teacherId: v })}>
+                    <SelectTrigger><SelectValue placeholder="اختر المعلم" /></SelectTrigger>
+                    <SelectContent>
+                      {teachers.length === 0 && <SelectItem value="none" disabled>لا يوجد معلمين</SelectItem>}
+                      {teachers.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.avatar} {t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div><Label>رابط الفيديو (YouTube embed)</Label><Input dir="ltr" value={newLesson.videoUrl} onChange={e => setNewLesson({ ...newLesson, videoUrl: e.target.value })} placeholder="https://www.youtube.com/embed/..." /></div>
-              <div><Label>مدة الفيديو</Label><Input value={newLesson.videoDuration} onChange={e => setNewLesson({ ...newLesson, videoDuration: e.target.value })} placeholder="24:35" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>مصدر الفيديو</Label>
+                  <Select value={newLesson.videoSource} onValueChange={v => setNewLesson({ ...newLesson, videoSource: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="youtube">YouTube</SelectItem>
+                      <SelectItem value="vimeo">Vimeo</SelectItem>
+                      <SelectItem value="direct">رفع مباشر</SelectItem>
+                      <SelectItem value="gdrive">Google Drive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>مدة الفيديو</Label><Input value={newLesson.videoDuration} onChange={e => setNewLesson({ ...newLesson, videoDuration: e.target.value })} placeholder="24:35" /></div>
+              </div>
+              <div><Label>رابط الفيديو *</Label><Input dir="ltr" value={newLesson.videoUrl} onChange={e => setNewLesson({ ...newLesson, videoUrl: e.target.value })} placeholder="https://www.youtube.com/watch?v=..." /></div>
+
+              {/* PDF Section */}
+              <div className="border rounded-lg p-3 space-y-2">
+                <Label>ملفات PDF</Label>
+                <div className="flex gap-2">
+                  <Input placeholder="اسم الملف" value={newPdf.name} onChange={e => setNewPdf({ ...newPdf, name: e.target.value })} />
+                  <Input placeholder="الرابط" dir="ltr" value={newPdf.url} onChange={e => setNewPdf({ ...newPdf, url: e.target.value })} />
+                  <Button size="sm" onClick={handleAddPdf}><Plus className="w-4 h-4" /></Button>
+                </div>
+                {pdfs.length > 0 && (
+                  <div className="space-y-1">
+                    {pdfs.map((p, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 rounded bg-muted/50">
+                        <FileText className="w-4 h-4 text-rose-500" />
+                        <span className="flex-1 text-sm">{p.name}</span>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPdfs(pdfs.filter((_, idx) => idx !== i))}>
+                          <Trash2 className="w-3 h-3 text-rose-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* PDF Download toggle */}
               <div className="flex items-center gap-2">
                 <Switch checked={newLesson.allowPdfDownload} onCheckedChange={c => setNewLesson({ ...newLesson, allowPdfDownload: c })} />
-                <Label>السماح بتحميل PDF</Label>
+                <Label>السماح للطلاب بتحميل PDF</Label>
+              </div>
+
+              {/* HTML Exam Section */}
+              <div className="border rounded-lg p-3">
+                <Label>امتحان HTML تفاعلي (اختياري)</Label>
+                <p className="text-xs text-muted-foreground mb-2">اكتب كود HTML للامتحان - سيتم ربطه بالدرس تلقائياً</p>
+                <HtmlExamBuilder onSave={setExamHtml} />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
-              <Button onClick={handleAdd}>إضافة</Button>
+              <Button onClick={handleAdd}><Save className="w-4 h-4 ml-2" /> حفظ الدرس</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -497,13 +573,10 @@ function ManageLessons() {
 
 // ===== Manage Videos =====
 function ManageVideos() {
-  const { lessons } = useStore();
+  const { lessons, openLesson } = useStore();
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>إدارة الفيديوهات ({lessons.length})</CardTitle>
-        <CardDescription>كل الفيديوهات على المنصة</CardDescription>
-      </CardHeader>
+      <CardHeader><CardTitle>إدارة الفيديوهات ({lessons.length})</CardTitle></CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
@@ -512,15 +585,21 @@ function ManageVideos() {
               <TableHead>المصدر</TableHead>
               <TableHead>المدة</TableHead>
               <TableHead>المشاهدات</TableHead>
+              <TableHead>إجراء</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lessons.map(l => (
+            {lessons.map((l: any) => (
               <TableRow key={l.id}>
                 <TableCell className="font-medium">{l.title}</TableCell>
                 <TableCell><Badge variant="secondary">{l.videoSource}</Badge></TableCell>
                 <TableCell>{l.videoDuration}</TableCell>
-                <TableCell>{l.views.toLocaleString('ar-EG')}</TableCell>
+                <TableCell>{(l.views || 0).toLocaleString('ar-EG')}</TableCell>
+                <TableCell>
+                  <Button size="sm" variant="ghost" onClick={() => openLesson(l.id)}>
+                    <Eye className="w-4 h-4 ml-1" /> عرض
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -532,180 +611,209 @@ function ManageVideos() {
 
 // ===== Manage PDFs =====
 function ManagePDFs() {
-  const { lessons } = useStore();
-  const allPdfs = lessons.flatMap(l => l.pdfs.map(p => ({ ...p, lesson: l.title })));
+  const { lessons, updateLesson } = useStore();
+  const allPdfs = lessons.flatMap((l: any) => (l.pdfs || []).map((p: any) => ({ ...p, lesson: l.title, lessonId: l.id })));
+  const [showUpload, setShowUpload] = useState(false);
+  const [newPdf, setNewPdf] = useState({ name: '', url: '', lessonId: '' });
+
+  const handleUpload = async () => {
+    if (!newPdf.name || !newPdf.url || !newPdf.lessonId) {
+      toast.error('املأ كل الحقول');
+      return;
+    }
+    const lesson = lessons.find((l: any) => l.id === newPdf.lessonId) as any;
+    if (!lesson) return;
+    await updateLesson(lesson.id, {
+      pdfs: [...(lesson.pdfs || []), { name: newPdf.name, url: newPdf.url, size: '1.2 MB', pages: 10 }],
+    } as any);
+    toast.success('تم رفع ملف PDF');
+    setNewPdf({ name: '', url: '', lessonId: '' });
+    setShowUpload(false);
+  };
+
+  const handleDelete = async (lessonId: string, pdfId: string) => {
+    const lesson = lessons.find((l: any) => l.id === lessonId) as any;
+    if (!lesson) return;
+    if (confirm('حذف هذا الملف؟')) {
+      await updateLesson(lessonId, { pdfs: (lesson.pdfs || []).filter((p: any) => p.id !== pdfId) } as any);
+      toast.success('تم الحذف');
+    }
+  };
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>إدارة ملفات PDF ({allPdfs.length})</CardTitle>
-            <CardDescription>كل ملفات PDF على المنصة</CardDescription>
-          </div>
-          <Button><Upload className="w-4 h-4 ml-2" /> رفع PDF</Button>
+          <div><CardTitle>إدارة ملفات PDF ({allPdfs.length})</CardTitle></div>
+          <Button onClick={() => setShowUpload(true)}><Upload className="w-4 h-4 ml-2" /> رفع PDF</Button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allPdfs.map(p => (
-            <Card key={p.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 font-bold text-xs">PDF</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">{p.size} • {p.pages} صفحة</div>
-                    <div className="text-xs text-muted-foreground mt-1">في: {p.lesson}</div>
+        {allPdfs.length === 0 ? (
+          <EmptyState icon={FileText} title="لا توجد ملفات PDF" />
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {allPdfs.map((p: any) => (
+              <Card key={p.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 font-bold text-xs">PDF</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.size}</div>
+                      <div className="text-xs text-muted-foreground mt-1">في: {p.lesson}</div>
+                      <div className="flex gap-1 mt-2">
+                        <Button size="sm" variant="outline" onClick={() => window.open(p.url, '_blank')}>
+                          <Eye className="w-3.5 h-3.5 ml-1" /> عرض
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(p.lessonId, p.id)}>
+                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <Dialog open={showUpload} onOpenChange={setShowUpload}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>رفع ملف PDF</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>الدرس</Label>
+                <Select value={newPdf.lessonId} onValueChange={v => setNewPdf({ ...newPdf, lessonId: v })}>
+                  <SelectTrigger><SelectValue placeholder="اختر الدرس" /></SelectTrigger>
+                  <SelectContent>
+                    {lessons.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>اسم الملف</Label><Input value={newPdf.name} onChange={e => setNewPdf({ ...newPdf, name: e.target.value })} placeholder="ملخص الدرس.pdf" /></div>
+              <div><Label>رابط الملف</Label><Input dir="ltr" value={newPdf.url} onChange={e => setNewPdf({ ...newPdf, url: e.target.value })} placeholder="https://..." /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowUpload(false)}>إلغاء</Button>
+              <Button onClick={handleUpload}>رفع</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
 }
 
-// ===== Manage Exams (including HTML) =====
+// ===== Manage Exams =====
 function ManageExams() {
   const { exams, addExam, deleteExam } = useStore();
   const [showAdd, setShowAdd] = useState(false);
-  const [examType, setExamType] = useState<'html' | 'questions'>('html');
-  const [newExam, setNewExam] = useState({
-    title: '', description: '', duration: 30, passingScore: 60,
-    preventBack: true, randomOrder: false, showGrade: true, showSolution: true,
-  });
+  const [previewExam, setPreviewExam] = useState<Exam | null>(null);
+  const [newExam, setNewExam] = useState({ title: '', description: '', duration: 30 });
   const [htmlContent, setHtmlContent] = useState('');
 
-  const handleSave = () => {
-    if (!newExam.title) {
-      toast.error('أدخل عنوان الامتحان');
-      return;
-    }
-    const exam: Exam = {
-      id: `exam-${Date.now()}`,
+  const handleAdd = async () => {
+    if (!newExam.title) { toast.error('أدخل عنوان الامتحان'); return; }
+    if (!htmlContent) { toast.error('أدخل كود HTML'); return; }
+    const success = await addExam({
       title: newExam.title,
       description: newExam.description,
       durationMinutes: newExam.duration,
-      preventBack: newExam.preventBack,
-      randomOrder: newExam.randomOrder,
-      showGrade: newExam.showGrade,
-      showSolution: newExam.showSolution,
-      passingScore: newExam.passingScore,
-      questions: [],
-      isHtmlExam: examType === 'html',
-      htmlContent: examType === 'html' ? htmlContent : undefined,
-    };
-    addExam(exam);
-    toast.success('تم إنشاء الامتحان');
-    setShowAdd(false);
-    setNewExam({ title: '', description: '', duration: 30, passingScore: 60, preventBack: true, randomOrder: false, showGrade: true, showSolution: true });
-    setHtmlContent('');
+      isHtmlExam: true,
+      htmlContent,
+    } as any);
+    if (success) {
+      toast.success('تم إنشاء الامتحان');
+      setShowAdd(false);
+      setNewExam({ title: '', description: '', duration: 30 });
+      setHtmlContent('');
+    } else {
+      toast.error('فشل في الإنشاء');
+    }
   };
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <CardTitle>إدارة الامتحانات ({exams.length})</CardTitle>
-              <CardDescription>إنشاء امتحانات تفاعلية HTML أو أسئلة عادية</CardDescription>
-            </div>
-            <Button onClick={() => setShowAdd(true)}>
-              <Plus className="w-4 h-4 ml-2" /> امتحان جديد
-            </Button>
+          <div className="flex items-center justify-between">
+            <CardTitle>إدارة الامتحانات ({exams.length})</CardTitle>
+            <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 ml-2" /> امتحان جديد</Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            {exams.map(e => (
-              <Card key={e.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Award className="w-5 h-5 text-amber-600" />
-                      <h3 className="font-semibold">{e.title}</h3>
+          {exams.length === 0 ? (
+            <EmptyState icon={Award} title="لا توجد امتحانات" />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {exams.map((e: any) => (
+                <Card key={e.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Award className="w-5 h-5 text-amber-600" />
+                        <h3 className="font-semibold">{e.title}</h3>
+                      </div>
+                      {e.isHtmlExam && <Badge>HTML</Badge>}
                     </div>
-                    {e.isHtmlExam && <Badge>HTML تفاعلي</Badge>}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{e.description}</p>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="secondary">⏱ {e.durationMinutes} دقيقة</Badge>
-                    <Badge variant="secondary">🎯 {e.passingScore}% للنجاح</Badge>
-                    {e.preventBack && <Badge variant="secondary">🚫 منع الرجوع</Badge>}
-                    {e.randomOrder && <Badge variant="secondary">🔀 ترتيب عشوائي</Badge>}
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    <Button size="sm" variant="outline" className="flex-1"><Eye className="w-4 h-4 ml-1" /> معاينة</Button>
-                    <Button size="sm" variant="ghost" onClick={() => { deleteExam(e.id); toast.success('تم الحذف'); }}>
-                      <Trash2 className="w-4 h-4 text-rose-500" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <p className="text-sm text-muted-foreground mb-3">{e.description}</p>
+                    <div className="flex gap-2 text-xs mb-3">
+                      <Badge variant="secondary">⏱ {e.durationMinutes} د</Badge>
+                      <Badge variant="secondary">🎯 {e.passingScore}%</Badge>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => setPreviewExam(e)}>
+                        <Eye className="w-4 h-4 ml-1" /> معاينة
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={async () => {
+                        if (confirm('حذف الامتحان؟')) {
+                          await deleteExam(e.id);
+                          toast.success('تم الحذف');
+                        }
+                      }}>
+                        <Trash2 className="w-4 h-4 text-rose-500" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
+      <Dialog open={!!previewExam} onOpenChange={(open) => !open && setPreviewExam(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5 text-amber-600" />
+              {previewExam?.title}
+            </DialogTitle>
+            <DialogDescription>{previewExam?.description}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewExam?.isHtmlExam && previewExam?.htmlContent ? (
+              <iframe srcDoc={previewExam.htmlContent} className="w-full h-[70vh] rounded-lg border" sandbox="allow-scripts allow-same-origin allow-forms" title="معاينة" />
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">هذا امتحان عادي (أسئلة)</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>إنشاء امتحان جديد</DialogTitle>
-            <DialogDescription>اختر نوع الامتحان وأدخل بياناته</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>نوع الامتحان</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <Button variant={examType === 'html' ? 'default' : 'outline'} onClick={() => setExamType('html')}>
-                  💻 امتحان HTML تفاعلي
-                </Button>
-                <Button variant={examType === 'questions' ? 'default' : 'outline'} onClick={() => setExamType('questions')}>
-                  📝 أسئلة عادية
-                </Button>
-              </div>
-            </div>
+          <DialogHeader><DialogTitle>إنشاء امتحان HTML تفاعلي</DialogTitle></DialogHeader>
+          <div className="space-y-3">
             <div><Label>عنوان الامتحان</Label><Input value={newExam.title} onChange={e => setNewExam({ ...newExam, title: e.target.value })} /></div>
             <div><Label>الوصف</Label><Textarea value={newExam.description} onChange={e => setNewExam({ ...newExam, description: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>المدة (دقيقة)</Label><Input type="number" value={newExam.duration} onChange={e => setNewExam({ ...newExam, duration: +e.target.value })} /></div>
-              <div><Label>درجة النجاح (%)</Label><Input type="number" value={newExam.passingScore} onChange={e => setNewExam({ ...newExam, passingScore: +e.target.value })} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2">
-                <Switch checked={newExam.preventBack} onCheckedChange={c => setNewExam({ ...newExam, preventBack: c })} />
-                <Label>منع الرجوع</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={newExam.randomOrder} onCheckedChange={c => setNewExam({ ...newExam, randomOrder: c })} />
-                <Label>ترتيب عشوائي</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={newExam.showGrade} onCheckedChange={c => setNewExam({ ...newExam, showGrade: c })} />
-                <Label>إظهار الدرجة</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={newExam.showSolution} onCheckedChange={c => setNewExam({ ...newExam, showSolution: c })} />
-                <Label>إظهار الحل</Label>
-              </div>
-            </div>
-            {examType === 'html' && (
-              <HtmlExamBuilder onSave={setHtmlContent} />
-            )}
-            {examType === 'questions' && (
-              <div className="p-4 bg-muted/30 rounded-lg text-center text-muted-foreground">
-                <HelpCircle className="w-8 h-8 mx-auto mb-2" />
-                محرر الأسئلة العادية - يمكن إضافته من بنك الأسئلة
-              </div>
-            )}
+            <div><Label>المدة (دقيقة)</Label><Input type="number" value={newExam.duration} onChange={e => setNewExam({ ...newExam, duration: +e.target.value })} /></div>
+            <HtmlExamBuilder onSave={setHtmlContent} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
-            <Button onClick={handleSave}><Save className="w-4 h-4 ml-2" /> حفظ الامتحان</Button>
+            <Button onClick={handleAdd}>حفظ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -715,51 +823,34 @@ function ManageExams() {
 
 // ===== Question Bank =====
 function QuestionBank() {
-  const { questionBank } = useStore();
+  const { questionBank, addQuestion, deleteQuestion } = useStore() as any;
+  const [showAdd, setShowAdd] = useState(false);
+  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ' as any, difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first' });
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>بنك الأسئلة ({questionBank.length})</CardTitle>
-            <CardDescription>إدارة وتصنيف الأسئلة</CardDescription>
-          </div>
-          <Button><Plus className="w-4 h-4 ml-2" /> إضافة سؤال</Button>
+          <CardTitle>بنك الأسئلة ({questionBank?.length || 0})</CardTitle>
+          <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 ml-2" /> إضافة سؤال</Button>
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>السؤال</TableHead>
-              <TableHead>النوع</TableHead>
-              <TableHead>الصعوبة</TableHead>
-              <TableHead>المرحلة</TableHead>
-              <TableHead>السنة</TableHead>
-              <TableHead>الدرجة</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {questionBank.map(q => (
-              <TableRow key={q.id}>
-                <TableCell className="max-w-xs truncate">{q.text}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">
-                    {q.type === 'mcq' ? 'اختيار' : q.type === 'truefalse' ? 'صح/خطأ' : q.type === 'fill' ? 'أكمل' : q.type === 'essay' ? 'مقالي' : 'صورة'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={q.difficulty === 'easy' ? 'default' : q.difficulty === 'medium' ? 'secondary' : 'destructive'}>
-                    {q.difficulty === 'easy' ? 'سهل' : q.difficulty === 'medium' ? 'متوسط' : 'صعب'}
-                  </Badge>
-                </TableCell>
-                <TableCell>{q.stageId === 'high' ? 'ثانوي' : 'إعدادي'}</TableCell>
-                <TableCell>{q.yearId === 'first' ? '1' : q.yearId === 'second' ? '2' : '3'}</TableCell>
-                <TableCell>{q.points}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <p className="text-sm text-muted-foreground mb-4">سيتم إضافة محرر الأسئلة الكامل قريباً. الأسئلة الحالية تظهر في الدروس والواجبات.</p>
+        <Dialog open={showAdd} onOpenChange={setShowAdd}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>إضافة سؤال</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>نص السؤال</Label><Textarea value={newQ.text} onChange={e => setNewQ({ ...newQ, text: e.target.value })} /></div>
+              <div><Label>الإجابة الصحيحة</Label><Input value={newQ.correctAnswer} onChange={e => setNewQ({ ...newQ, correctAnswer: e.target.value })} /></div>
+              <div><Label>الدرجة</Label><Input type="number" value={newQ.points} onChange={e => setNewQ({ ...newQ, points: +e.target.value })} /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAdd(false)}>إلغاء</Button>
+              <Button onClick={() => { toast.success('سيتم إضافة محرر كامل قريباً'); setShowAdd(false); }}>حفظ</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -767,18 +858,20 @@ function QuestionBank() {
 
 // ===== Finance =====
 function FinanceSection() {
+  const { stats } = useStore();
+  const s = stats || { totalRevenue: 0, monthlyRevenue: [] };
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={DollarSign} label="إجمالي الأرباح" value={`${demoStats.totalRevenue.toLocaleString('ar-EG')} ج.م`} color="text-emerald-600" trend="+18%" />
-        <StatCard icon={TrendingUp} label="أرباح الشهر" value={`${demoStats.monthlyRevenue[demoStats.monthlyRevenue.length - 1].revenue.toLocaleString('ar-EG')} ج.م`} color="text-amber-600" trend="+12%" />
-        <StatCard icon={CreditCard} label="معاملات الشهر" value={142} color="text-purple-600" />
+        <StatCard icon={DollarSign} label="إجمالي الأرباح" value={`${(s.totalRevenue || 0).toLocaleString('ar-EG')} ج.م`} color="text-emerald-600" trend="+18%" />
+        <StatCard icon={TrendingUp} label="أرباح الشهر" value={`${((s.monthlyRevenue?.slice(-1)[0]?.revenue) || 0).toLocaleString('ar-EG')} ج.م`} color="text-amber-600" />
+        <StatCard icon={CreditCard} label="معاملات" value="142" color="text-purple-600" />
       </div>
       <Card>
         <CardHeader><CardTitle>الأرباح الشهرية</CardTitle></CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={demoStats.monthlyRevenue}>
+            <BarChart data={s.monthlyRevenue || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
               <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -795,7 +888,7 @@ function FinanceSection() {
 // ===== Subscriptions =====
 function SubscriptionsSection() {
   const { users } = useStore();
-  const subscribers = users.filter(u => u.role === 'student' && u.subscriptionStatus === 'active');
+  const subscribers = users.filter((u: any) => u.role === 'student' && u.subscriptionStatus === 'active');
   return (
     <Card>
       <CardHeader><CardTitle>الاشتراكات النشطة ({subscribers.length})</CardTitle></CardHeader>
@@ -809,10 +902,10 @@ function SubscriptionsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {subscribers.map(s => (
+            {subscribers.map((s: any) => (
               <TableRow key={s.id}>
                 <TableCell>{s.name}</TableCell>
-                <TableCell>{s.subscriptionExpiry}</TableCell>
+                <TableCell>{s.subscriptionExpiry ? new Date(s.subscriptionExpiry).toLocaleDateString('ar-EG') : '-'}</TableCell>
                 <TableCell><Badge>نشط</Badge></TableCell>
               </TableRow>
             ))}
@@ -830,36 +923,32 @@ function PaymentsSection() {
     <Card>
       <CardHeader><CardTitle>سجل المدفوعات ({payments.length})</CardTitle></CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>الطالب</TableHead>
-              <TableHead>المبلغ</TableHead>
-              <TableHead>الباقة</TableHead>
-              <TableHead>طريقة الدفع</TableHead>
-              <TableHead>التاريخ</TableHead>
-              <TableHead>الحالة</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map(p => (
-              <TableRow key={p.id}>
-                <TableCell>{p.studentName}</TableCell>
-                <TableCell>{p.amount} ج.م</TableCell>
-                <TableCell>{p.subscriptionName}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{p.method}</Badge>
-                </TableCell>
-                <TableCell>{p.date}</TableCell>
-                <TableCell>
-                  <Badge variant={p.status === 'completed' ? 'default' : p.status === 'pending' ? 'secondary' : 'destructive'}>
-                    {p.status === 'completed' ? 'مكتمل' : p.status === 'pending' ? 'معلق' : 'فشل'}
-                  </Badge>
-                </TableCell>
+        {payments.length === 0 ? (
+          <EmptyState icon={CreditCard} title="لا توجد مدفوعات" />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>الطالب</TableHead>
+                <TableHead>المبلغ</TableHead>
+                <TableHead>الباقة</TableHead>
+                <TableHead>طريقة الدفع</TableHead>
+                <TableHead>الحالة</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {payments.map((p: any) => (
+                <TableRow key={p.id}>
+                  <TableCell>{p.studentName}</TableCell>
+                  <TableCell>{p.amount} ج.م</TableCell>
+                  <TableCell>{p.subscriptionName}</TableCell>
+                  <TableCell><Badge variant="outline">{p.method}</Badge></TableCell>
+                  <TableCell><Badge variant={p.status === 'completed' ? 'default' : 'secondary'}>{p.status === 'completed' ? 'مكتمل' : 'معلق'}</Badge></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
@@ -867,54 +956,53 @@ function PaymentsSection() {
 
 // ===== Coupons =====
 function CouponsSection() {
-  const { coupons, deleteCoupon, addCoupon } = useStore();
+  const { coupons, addCoupon, deleteCoupon } = useStore();
   const [showAdd, setShowAdd] = useState(false);
-  const [newCoupon, setNewCoupon] = useState({ code: '', discount: 10, type: 'percentage' as 'percentage' | 'fixed', maxUses: 100, expiry: '2026-12-31' });
+  const [newCoupon, setNewCoupon] = useState({ code: '', discount: 10, type: 'percentage', maxUses: 100, expiry: '2026-12-31' });
 
-  const handleAdd = () => {
-    addCoupon({
-      id: `cp-${Date.now()}`,
+  const handleAdd = async () => {
+    if (!newCoupon.code) { toast.error('أدخل كود الكوبون'); return; }
+    const success = await addCoupon({
       code: newCoupon.code,
       discount: newCoupon.discount,
       type: newCoupon.type,
       maxUses: newCoupon.maxUses,
-      usedCount: 0,
       expiry: newCoupon.expiry,
-      active: true,
-    });
-    toast.success('تم إضافة الكوبون');
-    setShowAdd(false);
-    setNewCoupon({ code: '', discount: 10, type: 'percentage', maxUses: 100, expiry: '2026-12-31' });
+    } as any);
+    if (success) {
+      toast.success('تم إضافة الكوبون');
+      setShowAdd(false);
+      setNewCoupon({ code: '', discount: 10, type: 'percentage', maxUses: 100, expiry: '2026-12-31' });
+    }
   };
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div><CardTitle>كوبونات الخصم ({coupons.length})</CardTitle></div>
+          <CardTitle>كوبونات الخصم ({coupons.length})</CardTitle>
           <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 ml-2" /> كوبون جديد</Button>
         </div>
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-3 gap-4">
-          {coupons.map(c => (
+          {coupons.map((c: any) => (
             <Card key={c.id}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="font-mono font-bold text-lg text-emerald-600">{c.code}</div>
-                  <Badge variant={c.active ? 'default' : 'secondary'}>
-                    {c.active ? 'نشط' : 'موقوف'}
-                  </Badge>
+                  <Badge variant={c.active ? 'default' : 'secondary'}>{c.active ? 'نشط' : 'موقوف'}</Badge>
                 </div>
-                <div className="text-2xl font-bold mb-1">
-                  {c.type === 'percentage' ? `${c.discount}%` : `${c.discount} ج.م`}
-                </div>
-                <div className="text-xs text-muted-foreground mb-2">خصم {c.type === 'percentage' ? 'نسبة' : 'مبلغ ثابت'}</div>
+                <div className="text-2xl font-bold mb-1">{c.type === 'percentage' ? `${c.discount}%` : `${c.discount} ج.م`}</div>
+                <div className="text-xs text-muted-foreground mb-2">{c.type === 'percentage' ? 'نسبة' : 'مبلغ'}</div>
                 <div className="text-xs space-y-1">
                   <div>الاستخدام: {c.usedCount}/{c.maxUses}</div>
-                  <div>الانتهاء: {c.expiry}</div>
+                  <div>الانتهاء: {new Date(c.expiry).toLocaleDateString('ar-EG')}</div>
                 </div>
-                <Button size="sm" variant="ghost" className="w-full mt-2 text-rose-500" onClick={() => { deleteCoupon(c.id); toast.success('تم الحذف'); }}>
+                <Button size="sm" variant="ghost" className="w-full mt-2 text-rose-500" onClick={async () => {
+                  await deleteCoupon(c.id);
+                  toast.success('تم الحذف');
+                }}>
                   <Trash2 className="w-4 h-4 ml-1" /> حذف
                 </Button>
               </CardContent>
@@ -933,7 +1021,7 @@ function CouponsSection() {
                 <Select value={newCoupon.type} onValueChange={(v: any) => setNewCoupon({ ...newCoupon, type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percentage">نسبة مئوية %</SelectItem>
+                    <SelectItem value="percentage">نسبة %</SelectItem>
                     <SelectItem value="fixed">مبلغ ثابت</SelectItem>
                   </SelectContent>
                 </Select>
@@ -954,25 +1042,33 @@ function CouponsSection() {
 
 // ===== Comments =====
 function CommentsSection() {
-  const { comments } = useStore();
+  const { comments, fetchComments, deleteComment } = useStore() as any;
+  useEffect(() => { fetchComments(); }, [fetchComments]);
   return (
     <Card>
       <CardHeader><CardTitle>إدارة التعليقات ({comments.length})</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        {comments.map(c => (
-          <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg border">
-            <Avatar><AvatarFallback>{c.userAvatar}</AvatarFallback></Avatar>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium">{c.userName}</span>
-                {c.rating && <Badge variant="secondary">⭐ {c.rating}</Badge>}
-                <span className="text-xs text-muted-foreground">{c.createdAt}</span>
+        {comments.length === 0 ? (
+          <EmptyState icon={MessageSquare} title="لا توجد تعليقات" />
+        ) : (
+          comments.map((c: any) => (
+            <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg border">
+              <Avatar><AvatarFallback>{c.user?.avatar || '👤'}</AvatarFallback></Avatar>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium">{c.user?.name || 'مستخدم'}</span>
+                  {c.rating && <Badge variant="secondary">⭐ {c.rating}</Badge>}
+                </div>
+                <p className="text-sm text-muted-foreground">{c.text}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{c.text}</p>
+              <Button size="icon" variant="ghost" onClick={() => {
+                if (confirm('حذف التعليق؟')) { deleteComment(c.id); toast.success('تم الحذف'); }
+              }}>
+                <Trash2 className="w-4 h-4 text-rose-500" />
+              </Button>
             </div>
-            <Button size="icon" variant="ghost"><Trash2 className="w-4 h-4 text-rose-500" /></Button>
-          </div>
-        ))}
+          ))
+        )}
       </CardContent>
     </Card>
   );
@@ -981,72 +1077,38 @@ function CommentsSection() {
 // ===== Notifications =====
 function NotificationsSection() {
   const { notifications, addNotification, markNotificationRead } = useStore();
-  const [newNotif, setNewNotif] = useState({ title: '', message: '', type: 'info' as 'info' | 'success' | 'warning' | 'error' });
+  const [newNotif, setNewNotif] = useState({ title: '', message: '', type: 'info' as any });
 
-  const handleSend = () => {
-    if (!newNotif.title || !newNotif.message) {
-      toast.error('أدخل العنوان والرسالة');
-      return;
-    }
-    addNotification({
-      id: `n-${Date.now()}`,
-      title: newNotif.title,
-      message: newNotif.message,
-      type: newNotif.type,
-      createdAt: new Date().toISOString().split('T')[0],
-      read: false,
-    });
-    toast.success('تم إرسال الإشعار لجميع المستخدمين');
+  const handleSend = async () => {
+    if (!newNotif.title || !newNotif.message) { toast.error('أدخل العنوان والرسالة'); return; }
+    await addNotification({ title: newNotif.title, message: newNotif.message, type: newNotif.type } as any);
+    toast.success('تم إرسال الإشعار');
     setNewNotif({ title: '', message: '', type: 'info' });
   };
 
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle>إرسال إشعار جديد</CardTitle></CardHeader>
+        <CardHeader><CardTitle>إرسال إشعار</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div><Label>العنوان</Label><Input value={newNotif.title} onChange={e => setNewNotif({ ...newNotif, title: e.target.value })} /></div>
           <div><Label>الرسالة</Label><Textarea value={newNotif.message} onChange={e => setNewNotif({ ...newNotif, message: e.target.value })} /></div>
-          <div>
-            <Label>النوع</Label>
-            <Select value={newNotif.type} onValueChange={(v: any) => setNewNotif({ ...newNotif, type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="info">معلومة</SelectItem>
-                <SelectItem value="success">نجاح</SelectItem>
-                <SelectItem value="warning">تحذير</SelectItem>
-                <SelectItem value="error">خطأ</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={handleSend}><Bell className="w-4 h-4 ml-2" /> إرسال الإشعار</Button>
+          <Button onClick={handleSend}><Bell className="w-4 h-4 ml-2" /> إرسال</Button>
         </CardContent>
       </Card>
-
       <Card>
-        <CardHeader><CardTitle>الإشعارات السابقة ({notifications.length})</CardTitle></CardHeader>
+        <CardHeader><CardTitle>الإشعارات ({notifications.length})</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {notifications.map(n => (
+          {notifications.map((n: any) => (
             <div key={n.id} className={`p-3 rounded-lg border ${!n.read ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}>
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant={
-                      n.type === 'success' ? 'default' :
-                      n.type === 'warning' ? 'secondary' :
-                      n.type === 'error' ? 'destructive' : 'outline'
-                    }>{n.type}</Badge>
-                    <span className="font-medium text-sm">{n.title}</span>
-                    {!n.read && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
-                  </div>
+                  <div className="font-medium text-sm">{n.title}</div>
                   <p className="text-sm text-muted-foreground">{n.message}</p>
-                  <div className="text-xs text-muted-foreground mt-1">{n.createdAt}</div>
                 </div>
-                {!n.read && (
-                  <Button size="sm" variant="ghost" onClick={() => markNotificationRead(n.id)}>
-                    <CheckCircle2 className="w-4 h-4" />
-                  </Button>
-                )}
+                {!n.read && <Button size="sm" variant="ghost" onClick={() => markNotificationRead(n.id)}>
+                  <CheckCircle2 className="w-4 h-4" />
+                </Button>}
               </div>
             </div>
           ))}
@@ -1058,23 +1120,22 @@ function NotificationsSection() {
 
 // ===== Stats =====
 function StatsSection() {
+  const { stats } = useStore();
+  const s = stats || {};
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="إجمالي الطلاب" value={demoStats.totalStudents} color="text-emerald-600" />
-        <StatCard icon={Eye} label="إجمالي الزيارات" value={demoStats.totalVisits} color="text-amber-600" />
-        <StatCard icon={Video} label="إجمالي الفيديوهات" value={demoStats.totalVideos} color="text-rose-600" />
-        <StatCard icon={BookOpen} label="إجمالي الدروس" value={demoStats.totalLessons} color="text-blue-600" />
+        <StatCard icon={Users} label="الطلاب" value={s.totalStudents || 0} color="text-emerald-600" />
+        <StatCard icon={Eye} label="الزيارات" value={s.totalVisits || 0} color="text-amber-600" />
+        <StatCard icon={Video} label="الفيديوهات" value={s.totalVideos || 0} color="text-rose-600" />
+        <StatCard icon={BookOpen} label="الدروس" value={s.totalLessons || 0} color="text-blue-600" />
       </div>
       <Card>
         <CardHeader><CardTitle>توزيع المراحل</CardTitle></CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={[
-                { name: 'إعدادي', value: 1450 },
-                { name: 'ثانوي', value: 1795 },
-              ]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+              <Pie data={[{ name: 'إعدادي', value: 1450 }, { name: 'ثانوي', value: 1795 }]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                 <Cell fill="#0f766e" />
                 <Cell fill="#f59e0b" />
               </Pie>
@@ -1089,41 +1150,16 @@ function StatsSection() {
 
 // ===== Backups =====
 function BackupsSection() {
-  const [backups] = useState([
-    { id: 'b1', date: '2026-06-28 12:00', size: '45 MB' },
-    { id: 'b2', date: '2026-06-27 12:00', size: '44 MB' },
-    { id: 'b3', date: '2026-06-26 12:00', size: '43 MB' },
-  ]);
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div><CardTitle>النسخ الاحتياطية</CardTitle></div>
-          <Button><Database className="w-4 h-4 ml-2" /> نسخ احتياطي الآن</Button>
+          <CardTitle>النسخ الاحتياطية</CardTitle>
+          <Button onClick={() => toast.success('سيتم إضافة النسخ الاحتياطي قريباً')}><Database className="w-4 h-4 ml-2" /> نسخ احتياطي</Button>
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>التاريخ</TableHead>
-              <TableHead>الحجم</TableHead>
-              <TableHead>إجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {backups.map(b => (
-              <TableRow key={b.id}>
-                <TableCell>{b.date}</TableCell>
-                <TableCell>{b.size}</TableCell>
-                <TableCell>
-                  <Button size="sm" variant="ghost">تحميل</Button>
-                  <Button size="sm" variant="ghost">استعادة</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <p className="text-sm text-muted-foreground text-center py-8">قاعدة البيانات محفوظة على Neon - يمكن أخذ نسخة احتياطية من لوحة تحكم Neon مباشرة.</p>
       </CardContent>
     </Card>
   );

@@ -141,14 +141,15 @@ export async function GET() {
     `, 'واجب 1');
 
     const questions1 = [
-      { id: 'q-001', type: 'MCQ', difficulty: 'EASY', text: 'ما هي قيمة lim(x→2) (x² + 3x)؟', options: '{10,8,12,14}', correct: '10', points: 4 },
+      { id: 'q-001', type: 'MCQ', difficulty: 'EASY', text: 'ما هي قيمة lim(x→2) (x² + 3x)؟', options: '10,8,12,14', correct: '10', points: 4 },
       { id: 'q-002', type: 'TRUEFALSE', difficulty: 'EASY', text: 'نهاية الدالة 1/x عند x→0 تساوي صفر.', correct: 'false', points: 4 },
       { id: 'q-003', type: 'FILL', difficulty: 'MEDIUM', text: 'lim(x→3) (x² - 9)/(x - 3) = ?', correct: '6', points: 4 },
-      { id: 'q-004', type: 'MCQ', difficulty: 'MEDIUM', text: 'إذا كانت f(x) = sin(x)، فإن lim(x→0) f(x)/x = ؟', options: '{0,1,∞,غير معرف}', correct: '1', points: 4 },
+      { id: 'q-004', type: 'MCQ', difficulty: 'MEDIUM', text: 'إذا كانت f(x) = sin(x)، فإن lim(x→0) f(x)/x = ؟', options: '0,1,∞,غير معرف', correct: '1', points: 4 },
       { id: 'q-005', type: 'ESSAY', difficulty: 'HARD', text: 'اثبت باستخدام تعريف النهاية أن lim(x→2) (3x) = 6.', correct: 'باستخدام تعريف إبسلون-دلتا', points: 4 },
     ];
     for (const q of questions1) {
-      const optionsSQL = q.options ? `ARRAY${q.options}::TEXT[]` : 'ARRAY[]::TEXT[]';
+      const optionsArr = q.options ? q.options.split(',').map((o: string) => `'${o.trim()}'`).join(',') : '';
+      const optionsSQL = optionsArr ? `ARRAY[${optionsArr}]::TEXT[]` : 'ARRAY[]::TEXT[]';
       await executeSQL(`
         INSERT INTO "Question" ("id", "type", "difficulty", "text", "options", "correctAnswer", "points", "assignmentId", "createdAt")
         VALUES ('${q.id}', '${q.type}', '${q.difficulty}', '${q.text.replace(/'/g, "''")}', ${optionsSQL}, '${q.correct}', ${q.points}, '${assignment1Id}', NOW())
@@ -162,13 +163,14 @@ export async function GET() {
     `, 'واجب 2');
 
     const questions2 = [
-      { id: 'q-006', type: 'MCQ', difficulty: 'EASY', text: 'مشتقة الدالة f(x) = x⁵ هي:', options: '{5x⁴,x⁴,5x,x⁵/5}', correct: '5x⁴', points: 4 },
+      { id: 'q-006', type: 'MCQ', difficulty: 'EASY', text: 'مشتقة الدالة f(x) = x⁵ هي:', options: '5x⁴,x⁴,5x,x⁵/5', correct: '5x⁴', points: 4 },
       { id: 'q-007', type: 'FILL', difficulty: 'MEDIUM', text: 'إذا كانت f(x) = x²·sin(x)، فإن f\'(x) = ؟', correct: '2x·sin(x) + x²·cos(x)', points: 4 },
       { id: 'q-008', type: 'TRUEFALSE', difficulty: 'EASY', text: 'مشتقة الدالة الثابتة تساوي صفر.', correct: 'true', points: 4 },
-      { id: 'q-009', type: 'MCQ', difficulty: 'HARD', text: 'مشتقة f(x) = ln(x²+1) هي:', options: '{2x/(x²+1),1/(x²+1),2x,ln(2x)}', correct: '2x/(x²+1)', points: 4 },
+      { id: 'q-009', type: 'MCQ', difficulty: 'HARD', text: 'مشتقة f(x) = ln(x²+1) هي:', options: '2x/(x²+1),1/(x²+1),2x,ln(2x)', correct: '2x/(x²+1)', points: 4 },
     ];
     for (const q of questions2) {
-      const optionsSQL = q.options ? `ARRAY${q.options}::TEXT[]` : 'ARRAY[]::TEXT[]';
+      const optionsArr = q.options ? q.options.split(',').map((o: string) => `'${o.trim()}'`).join(',') : '';
+      const optionsSQL = optionsArr ? `ARRAY[${optionsArr}]::TEXT[]` : 'ARRAY[]::TEXT[]';
       await executeSQL(`
         INSERT INTO "Question" ("id", "type", "difficulty", "text", "options", "correctAnswer", "points", "assignmentId", "createdAt")
         VALUES ('${q.id}', '${q.type}', '${q.difficulty}', '${q.text.replace(/'/g, "''")}', ${optionsSQL}, '${q.correct}', ${q.points}, '${assignment2Id}', NOW())
@@ -184,12 +186,13 @@ export async function GET() {
     `, 'امتحان 1');
 
     const examQuestions = [
-      { id: 'eq-001', type: 'MCQ', difficulty: 'EASY', text: 'lim(x→1) (x³ - 1)/(x - 1) = ?', options: '{1,2,3,0}', correct: '3', points: 5 },
+      { id: 'eq-001', type: 'MCQ', difficulty: 'EASY', text: 'lim(x→1) (x³ - 1)/(x - 1) = ?', options: '1,2,3,0', correct: '3', points: 5 },
       { id: 'eq-002', type: 'TRUEFALSE', difficulty: 'EASY', text: 'إذا ولت f(x) إلى L، فإن f(x) - L تؤول إلى صفر.', correct: 'true', points: 5 },
       { id: 'eq-003', type: 'FILL', difficulty: 'HARD', text: 'lim(x→∞) (3x² + 2x)/(x² - 1) = ?', correct: '3', points: 5 },
     ];
     for (const q of examQuestions) {
-      const optionsSQL = q.options ? `ARRAY${q.options}::TEXT[]` : 'ARRAY[]::TEXT[]';
+      const optionsArr = q.options ? q.options.split(',').map((o: string) => `'${o.trim()}'`).join(',') : '';
+      const optionsSQL = optionsArr ? `ARRAY[${optionsArr}]::TEXT[]` : 'ARRAY[]::TEXT[]';
       await executeSQL(`
         INSERT INTO "Question" ("id", "type", "difficulty", "text", "options", "correctAnswer", "points", "examId", "createdAt")
         VALUES ('${q.id}', '${q.type}', '${q.difficulty}', '${q.text.replace(/'/g, "''")}', ${optionsSQL}, '${q.correct}', ${q.points}, '${exam1Id}', NOW())
