@@ -67,7 +67,7 @@ export default function StudentDashboard() {
 }
 
 function StudentOverview() {
-  const { currentUser, lessons } = useStore();
+  const { currentUser, lessons, exams } = useStore();
   const completed = currentUser?.completedLessons || [];
   const completionRate = lessons.length > 0 ? Math.round((completed.length / lessons.length) * 100) : 0;
 
@@ -108,7 +108,7 @@ function StudentOverview() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={CheckCircle2} label="دروس مكتملة" value={completed.length} color="text-emerald-600" />
         <StatCard icon={Clock} label="دروس متبقية" value={Math.max(0, lessons.length - completed.length)} color="text-amber-600" />
-        <StatCard icon={Award} label="امتحانات" value={store?.exams?.length || 0} color="text-purple-600" />
+        <StatCard icon={Award} label="امتحانات" value={exams?.length || 0} color="text-purple-600" />
         <StatCard icon={Trophy} label="شهادات" value={0} color="text-rose-600" />
       </div>
     </div>
