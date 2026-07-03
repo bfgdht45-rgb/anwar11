@@ -155,6 +155,95 @@ function MyLessons() {
   );
 }
 
+function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQuestions: (q: any[]) => void }) {
+  const [newQ, setNewQ] = useState({
+    text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5,
+    options: ['', '', '', ''],
+  });
+
+  const addQuestion = () => {
+    if (!newQ.text || !newQ.correctAnswer) {
+      toast.error('أدخل السؤال والإجابة الصحيحة');
+      return;
+    }
+    const q = {
+      id: `q-${Date.now()}`,
+      ...newQ,
+      options: newQ.type === 'MCQ' ? newQ.options.filter(o => o) : undefined,
+    };
+    setQuestions([...questions, q]);
+    setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, options: ['', '', '', ''] });
+    toast.success('تم إضافة السؤال');
+  };
+
+  return (
+    <div className="space-y-3">
+      {questions.length > 0 && (
+        <div className="space-y-2">
+          {questions.map((q, i) => (
+            <div key={q.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+              <Badge>{i + 1}</Badge>
+              <span className="flex-1 text-sm line-clamp-1">{q.text}</span>
+              <Badge variant="secondary">{q.type}</Badge>
+              <Badge variant="secondary">{q.points} نقطة</Badge>
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}>
+                <Trash2 className="w-3 h-3 text-rose-500" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="border rounded-lg p-3 space-y-2">
+        <div><Label>نص السؤال</Label><Textarea value={newQ.text} onChange={e => setNewQ({ ...newQ, text: e.target.value })} /></div>
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <Label>النوع</Label>
+            <Select value={newQ.type} onValueChange={(v: any) => setNewQ({ ...newQ, type: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MCQ">اختيار من متعدد</SelectItem>
+                <SelectItem value="TRUEFALSE">صح / خطأ</SelectItem>
+                <SelectItem value="FILL">أكمل الفراغ</SelectItem>
+                <SelectItem value="ESSAY">مقالي</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>الصعوبة</Label>
+            <Select value={newQ.difficulty} onValueChange={(v: any) => setNewQ({ ...newQ, difficulty: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EASY">سهل</SelectItem>
+                <SelectItem value="MEDIUM">متوسط</SelectItem>
+                <SelectItem value="HARD">صعب</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>الدرجة</Label><Input type="number" value={newQ.points} onChange={e => setNewQ({ ...newQ, points: +e.target.value })} /></div>
+        </div>
+
+        {newQ.type === 'MCQ' && (
+          <div className="space-y-1">
+            <Label>الاختيارات</Label>
+            {newQ.options.map((opt, i) => (
+              <Input key={i} placeholder={`الاختيار ${i + 1}`} value={opt}
+                onChange={e => {
+                  const opts = [...newQ.options];
+                  opts[i] = e.target.value;
+                  setNewQ({ ...newQ, options: opts });
+                }} />
+            ))}
+          </div>
+        )}
+
+        <div><Label>الإجابة الصحيحة</Label><Input value={newQ.correctAnswer} onChange={e => setNewQ({ ...newQ, correctAnswer: e.target.value })} /></div>
+        <Button size="sm" onClick={addQuestion}><Plus className="w-4 h-4 ml-2" /> إضافة السؤال</Button>
+      </div>
+    </div>
+  );
+}
+
 function AddLesson() {
   const { addLesson, currentUser, units } = useStore();
   const [lesson, setLesson] = useState({
@@ -165,6 +254,7 @@ function AddLesson() {
   const [pdfs, setPdfs] = useState<{ name: string; url: string }[]>([]);
   const [newPdf, setNewPdf] = useState({ name: '', url: '' });
   const [examHtml, setExamHtml] = useState('');
+  const [assignmentQuestions, setAssignmentQuestions] = useState<any[]>([]);
 
   const defaultUnitId = lesson.unitId || units[0]?.id || '';
 
@@ -215,12 +305,22 @@ function AddLesson() {
       };
     }
 
+    if (assignmentQuestions.length > 0) {
+      payload.assignment = {
+        title: `واجب: ${lesson.title}`,
+        description: 'واجب الدرس',
+        totalPoints: assignmentQuestions.reduce((sum, q) => sum + q.points, 0),
+        questions: assignmentQuestions,
+      };
+    }
+
     const success = await addLesson(payload);
     if (success) {
       toast.success('تم إضافة الدرس بنجاح');
       setLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', videoSource: 'youtube', allowPdfDownload: true });
       setPdfs([]);
       setExamHtml('');
+      setAssignmentQuestions([]);
     } else {
       toast.error('فشل في إضافة الدرس');
     }
@@ -289,6 +389,14 @@ function AddLesson() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>الواجب (اختياري)</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">أضف أسئلة للواجب. سيتم تصحيحها تلقائياً للطالب.</p>
+          <AssignmentBuilder questions={assignmentQuestions} setQuestions={setAssignmentQuestions} />
         </CardContent>
       </Card>
 

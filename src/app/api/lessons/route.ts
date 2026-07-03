@@ -97,6 +97,24 @@ export async function POST(request: any) {
       }
     }
 
+    // إنشاء واجب لو فيه أسئلة
+    if (body.assignment?.questions?.length) {
+      const assignId = `assign-${Date.now()}`;
+      await query(
+        `INSERT INTO "Assignment" ("id", "title", "description", "totalPoints", "autoGrade", "lessonId", "createdAt") VALUES ($1, $2, $3, $4, true, $5, NOW())`,
+        [assignId, body.assignment.title || `واجب: ${body.title}`, body.assignment.description || '', body.assignment.totalPoints || 20, id]
+      );
+
+      for (const q of body.assignment.questions) {
+        const qId = `q-${Date.now()}-${Math.random()}`;
+        const options = q.type === 'MCQ' && q.options ? q.options : [];
+        await query(
+          `INSERT INTO "Question" ("id", "type", "difficulty", "text", "options", "correctAnswer", "explanation", "points", "assignmentId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+          [qId, q.type || 'MCQ', q.difficulty || 'EASY', q.text, options, q.correctAnswer, q.explanation || null, q.points || 5, assignId]
+        );
+      }
+    }
+
     // إنشاء امتحان HTML
     if (body.exam?.htmlContent) {
       const examId = `exam-${Date.now()}`;
