@@ -60,6 +60,7 @@ export default function AdminDashboard() {
     store.fetchCoupons();
     store.fetchPayments();
     store.fetchStats();
+    store.fetchQuestions();
   }, []);
 
   return (
@@ -546,15 +547,15 @@ function ManageLessons() {
               <div><Label>عنوان الدرس *</Label><Input value={newLesson.title} onChange={e => setNewLesson({ ...newLesson, title: e.target.value })} /></div>
               <div><Label>الوصف</Label><Textarea value={newLesson.description} onChange={e => setNewLesson({ ...newLesson, description: e.target.value })} /></div>
               <div>
-                <Label>المرحلة والوحدة</Label>
+                <Label>المرحلة والصف</Label>
                 <Select value={newLesson.unitId || defaultUnitId} onValueChange={v => setNewLesson({ ...newLesson, unitId: v })}>
-                  <SelectTrigger><SelectValue placeholder="اختر المرحلة والوحدة" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="اختر المرحلة والصف" /></SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات - شغل /api/seed</SelectItem>}
+                    {units.length === 0 && <SelectItem value="none" disabled>لا توجد مراحل - شغل /api/seed</SelectItem>}
                     {units.map((u: any) => {
                       const stageText = u.stageId === 'high' ? 'ثانوي' : 'إعدادي';
                       const yearText = u.yearId === 'first' ? 'أولى' : u.yearId === 'second' ? 'ثانية' : 'ثالثة';
-                      return <SelectItem key={u.id} value={u.id}>{stageText} - {yearText} - {u.title}</SelectItem>;
+                      return <SelectItem key={u.id} value={u.id}>{stageText} - {yearText} ({u.title})</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
@@ -907,29 +908,22 @@ function ManageExams() {
 
 // ===== Question Bank =====
 function QuestionBank() {
-  const { questionBank, addQuestion, deleteQuestion, units } = useStore() as any;
+  const { questionBank, addQuestion, deleteQuestion, units } = useStore();
   const [showAdd, setShowAdd] = useState(false);
-  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ' as any, difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', unitId: '', imageUrl: '' });
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setNewQ({ ...newQ, imageUrl: reader.result as string });
-      reader.readAsDataURL(file);
-    }
-  };
+  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ' as any, difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', imageUrl: '' });
 
   const handleAdd = async () => {
-    if (!newQ.text || !newQ.correctAnswer) {
-      toast.error('أدخل السؤال والإجابة');
+    if (!newQ.text && !newQ.imageUrl) {
+      toast.error('أدخل نص السؤال أو صورة على الأقل');
       return;
     }
-    const success = await addQuestion({ ...newQ, unitId: newQ.unitId || undefined });
+    const success = await addQuestion({ ...newQ, text: newQ.text || 'سؤال بصورة', correctAnswer: newQ.correctAnswer || 'إجابة بصرية' });
     if (success) {
       toast.success('تم إضافة السؤال');
-      setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', unitId: '', imageUrl: '' });
+      setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', imageUrl: '' });
       setShowAdd(false);
+    } else {
+      toast.error('فشل في الإضافة');
     }
   };
 
@@ -957,7 +951,10 @@ function QuestionBank() {
                     <Badge variant="secondary">{q.points} نقطة</Badge>
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => deleteQuestion(q.id)}>
+                <Button size="icon" variant="ghost" onClick={async () => {
+                  await deleteQuestion(q.id);
+                  toast.success('تم الحذف');
+                }}>
                   <Trash2 className="w-4 h-4 text-rose-500" />
                 </Button>
               </div>
@@ -973,18 +970,9 @@ function QuestionBank() {
 
               {/* رفع صورة */}
               <div>
-                <Label>صورة للسؤال (اختياري)</Label>
-                <div className="flex gap-2 items-center">
-                  <Input type="file" accept="image/*" onChange={handleImageUpload} className="flex-1" />
-                  {newQ.imageUrl && (
-                    <div className="relative">
-                      <img src={newQ.imageUrl} alt="معاينة" className="w-16 h-16 object-cover rounded-lg border" />
-                      <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => setNewQ({ ...newQ, imageUrl: '' })}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <Label>صورة للسؤال (رابط مباشر)</Label>
+                <Input placeholder="https://example.com/image.jpg" dir="ltr" value={newQ.imageUrl} onChange={e => setNewQ({ ...newQ, imageUrl: e.target.value })} />
+                {newQ.imageUrl && <img src={newQ.imageUrl} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border mt-2" />}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -118,6 +118,8 @@ export async function GET() {
           CONSTRAINT "Question_pkey" PRIMARY KEY ("id")
       )
     `, 'جدول Question');
+    // التأكد من وجود عمود imageUrl لو الجدول كان موجود من قبل
+    await executeSQL(`ALTER TABLE "Question" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;`, 'إضافة عمود imageUrl');
 
     log.push('💬 إنشاء جدول Comment...');
     await executeSQL(`

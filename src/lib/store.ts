@@ -39,6 +39,7 @@ interface AppState {
   certificates: Certificate[];
   grades: Grade[];
   stats: AppStats | null;
+  questionBank: any[];
 
   loading: boolean;
   currentLessonId: string | null;
@@ -60,6 +61,10 @@ interface AppState {
   fetchCoupons: () => Promise<void>;
   fetchPayments: () => Promise<void>;
   fetchStats: () => Promise<void>;
+  fetchQuestions: () => Promise<void>;
+
+  addQuestion: (question: any) => Promise<boolean>;
+  deleteQuestion: (id: string) => Promise<boolean>;
 
   openLesson: (lessonId: string) => void;
   addLesson: (lesson: any) => Promise<boolean>;
@@ -104,6 +109,7 @@ export const useStore = create<AppState>((set, get) => ({
   certificates: [],
   grades: [],
   stats: null,
+  questionBank: [],
   loading: false,
   currentLessonId: null,
   theme: typeof window !== 'undefined' ? (localStorage.getItem('theme') as 'light' | 'dark' || 'light') : 'light',
@@ -240,6 +246,38 @@ export const useStore = create<AppState>((set, get) => ({
       const data = await res.json();
       set({ stats: data });
     } catch (e) { console.error('fetchStats:', e); }
+  },
+
+  fetchQuestions: async () => {
+    try {
+      const res = await fetch('/api/questions');
+      const data = await res.json();
+      set({ questionBank: data.questions || [] });
+    } catch (e) { console.error('fetchQuestions:', e); }
+  },
+
+  addQuestion: async (question) => {
+    try {
+      const res = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(question),
+      });
+      const data = await res.json();
+      if (data.question) {
+        await get().fetchQuestions();
+        return true;
+      }
+      return false;
+    } catch { return false; }
+  },
+
+  deleteQuestion: async (id) => {
+    try {
+      await fetch(`/api/questions?id=${id}`, { method: 'DELETE' });
+      await get().fetchQuestions();
+      return true;
+    } catch { return false; }
   },
 
   openLesson: (lessonId) => set({ currentLessonId: lessonId, view: 'lesson-page' }),

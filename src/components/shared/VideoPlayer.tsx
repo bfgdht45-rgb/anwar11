@@ -120,9 +120,6 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 
 // ===== PDF Viewer =====
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
-  const googleViewerUrl = url && url.startsWith('http') && !url.includes('google.com')
-    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-    : url;
   return (
     <Card>
       <CardContent className="p-4">
@@ -144,11 +141,9 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
           )}
         </div>
         <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          <iframe
-            src={googleViewerUrl}
-            className="w-full h-full"
-            title={name}
-          />
+          <object data={url} type="application/pdf" className="w-full h-full">
+            <iframe src={url} className="w-full h-full" title={name} />
+          </object>
         </div>
         {!allowDownload && (
           <p className="text-xs text-muted-foreground mt-2 text-center">

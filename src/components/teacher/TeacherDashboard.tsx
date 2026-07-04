@@ -371,15 +371,15 @@ function AddLesson() {
           <div><Label>الوصف</Label><Textarea value={lesson.description} onChange={e => setLesson({ ...lesson, description: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>المرحلة والوحدة</Label>
+              <Label>المرحلة والصف</Label>
               <Select value={lesson.unitId || defaultUnitId} onValueChange={v => setLesson({ ...lesson, unitId: v })}>
-                <SelectTrigger><SelectValue placeholder="اختر المرحلة والوحدة" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="اختر المرحلة والصف" /></SelectTrigger>
                 <SelectContent className="max-h-[300px]">
-                  {units.length === 0 && <SelectItem value="none" disabled>لا توجد وحدات</SelectItem>}
+                  {units.length === 0 && <SelectItem value="none" disabled>لا توجد مراحل</SelectItem>}
                   {units.map((u: any) => {
                     const stageText = u.stageId === 'high' ? 'ثانوي' : 'إعدادي';
                     const yearText = u.yearId === 'first' ? 'أولى' : u.yearId === 'second' ? 'ثانية' : 'ثالثة';
-                    return <SelectItem key={u.id} value={u.id}>{stageText} - {yearText} - {u.title}</SelectItem>;
+                    return <SelectItem key={u.id} value={u.id}>{stageText} - {yearText} ({u.title})</SelectItem>;
                   })}
                 </SelectContent>
               </Select>
