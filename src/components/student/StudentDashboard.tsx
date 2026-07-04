@@ -241,6 +241,11 @@ function MyAssignments() {
                     <Badge variant="secondary">{q.points} نقطة</Badge>
                     <p className="flex-1 font-medium">{q.text}</p>
                   </div>
+                  {q.imageUrl && (
+                    <div className="mb-3">
+                      <img src={q.imageUrl} alt="سؤال" className="max-w-full rounded-lg border" />
+                    </div>
+                  )}
                   {q.type === 'MCQ' && (
                     <div className="grid gap-2">
                       {(q.options || []).map((opt: string) => (

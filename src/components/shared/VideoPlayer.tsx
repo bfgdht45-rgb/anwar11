@@ -132,18 +132,27 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
               <div className="font-medium text-sm">{name}</div>
             </div>
           </div>
-          {allowDownload && (
+          <div className="flex gap-2">
             <Button size="sm" variant="outline" asChild>
-              <a href={url} download={name} target="_blank" rel="noopener noreferrer">
-                تحميل
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <Eye className="w-4 h-4 ml-1" /> فتح
               </a>
             </Button>
-          )}
+            {allowDownload && (
+              <Button size="sm" variant="outline" asChild>
+                <a href={url} download={name} target="_blank" rel="noopener noreferrer">
+                  تحميل
+                </a>
+              </Button>
+            )}
+          </div>
         </div>
         <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          <object data={url} type="application/pdf" className="w-full h-full">
-            <iframe src={url} className="w-full h-full" title={name} />
-          </object>
+          <iframe
+            src={url}
+            className="w-full h-full"
+            title={name}
+          />
         </div>
         {!allowDownload && (
           <p className="text-xs text-muted-foreground mt-2 text-center">
