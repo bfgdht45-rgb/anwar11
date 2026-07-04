@@ -174,13 +174,15 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
   };
 
   const addQuestion = () => {
-    if (!newQ.text || !newQ.correctAnswer) {
-      toast.error('أدخل السؤال والإجابة الصحيحة');
+    if (!newQ.text && !newQ.imageUrl) {
+      toast.error('أدخل نص السؤال أو صورة على الأقل');
       return;
     }
     const q = {
       id: `q-${Date.now()}`,
       ...newQ,
+      text: newQ.text || 'سؤال بصورة',
+      correctAnswer: newQ.correctAnswer || 'إجابة بصرية',
       options: newQ.type === 'MCQ' ? newQ.options.filter(o => o) : undefined,
     };
     setQuestions([...questions, q]);
@@ -212,17 +214,22 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
 
         {/* رفع صورة للسؤال */}
         <div>
-          <Label>صورة للسؤال (اختياري)</Label>
-          <div className="flex gap-2 items-center">
-            <Input type="file" accept="image/*" onChange={handleImageUpload} className="flex-1" />
-            {newQ.imageUrl && (
-              <div className="relative">
-                <img src={newQ.imageUrl} alt="معاينة" className="w-16 h-16 object-cover rounded-lg border" />
-                <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => setNewQ({ ...newQ, imageUrl: '' })}>
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
+          <Label>صورة للسؤال (اختياري - رفع ملف أو رابط مباشر)</Label>
+          <div className="space-y-2">
+            <div className="flex gap-2 items-center">
+              <Input type="file" accept="image/*" onChange={handleImageUpload} className="flex-1" />
+              {newQ.imageUrl && (
+                <div className="relative">
+                  <img src={newQ.imageUrl} alt="معاينة" className="w-16 h-16 object-cover rounded-lg border" />
+                  <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => setNewQ({ ...newQ, imageUrl: '' })}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 items-center">
+              <Input placeholder="أو الصق رابط صورة مباشر: https://..." dir="ltr" value={newQ.imageUrl.startsWith('data:') ? '' : newQ.imageUrl} onChange={e => setNewQ({ ...newQ, imageUrl: e.target.value })} />
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">

@@ -173,19 +173,10 @@ export default function AuthPage() {
                   </Button>
                 </form>
 
-                <div className="mt-6 pt-6 border-t">
-                  <p className="text-xs text-center text-muted-foreground mb-3">دخول سريع للتجربة</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => quickLogin('admin')}>
-                      👨‍💼 أدمن
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => quickLogin('teacher')}>
-                      👨‍🏫 معلم
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => quickLogin('student')}>
-                      🧑‍🎓 طالب
-                    </Button>
-                  </div>
+                <div className="mt-6 text-center">
+                  <Button variant="link" onClick={() => setView('landing')}>
+                    العودة للرئيسية
+                  </Button>
                 </div>
               </TabsContent>
 

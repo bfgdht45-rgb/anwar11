@@ -353,6 +353,55 @@ function ManageStudents() {
 }
 
 // ===== Manage Lessons =====
+function AssignmentMiniBuilder({ onAdd }: { onAdd: (q: any) => void }) {
+  const [text, setText] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [type, setType] = useState('MCQ');
+  const [correctAnswer, setCorrectAnswer] = useState('');
+  const [points, setPoints] = useState(5);
+
+  const handleAdd = () => {
+    if (!text && !imageUrl) {
+      toast.error('أدخل نص أو صورة على الأقل');
+      return;
+    }
+    onAdd({
+      id: `q-${Date.now()}`,
+      text: text || 'سؤال بصورة',
+      type,
+      difficulty: 'EASY',
+      correctAnswer: correctAnswer || 'إجابة بصرية',
+      points,
+      imageUrl: imageUrl || undefined,
+      options: type === 'MCQ' ? [] : undefined,
+    });
+    setText(''); setImageUrl(''); setCorrectAnswer(''); setPoints(5);
+    toast.success('تم إضافة السؤال');
+  };
+
+  return (
+    <div className="space-y-2">
+      <Textarea placeholder="نص السؤال (اختياري لو فيه صورة)" value={text} onChange={e => setText(e.target.value)} />
+      <Input placeholder="رابط صورة مباشر: https://..." dir="ltr" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+      {imageUrl && <img src={imageUrl} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border" />}
+      <div className="grid grid-cols-3 gap-2">
+        <Select value={type} onValueChange={setType}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="MCQ">اختيار من متعدد</SelectItem>
+            <SelectItem value="TRUEFALSE">صح / خطأ</SelectItem>
+            <SelectItem value="FILL">أكمل</SelectItem>
+            <SelectItem value="ESSAY">مقالي</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input placeholder="الإجابة" value={correctAnswer} onChange={e => setCorrectAnswer(e.target.value)} />
+        <Input type="number" placeholder="الدرجة" value={points} onChange={e => setPoints(+e.target.value)} />
+      </div>
+      <Button size="sm" onClick={handleAdd}><Plus className="w-4 h-4 ml-2" /> إضافة السؤال</Button>
+    </div>
+  );
+}
+
 function ManageLessons() {
   const { lessons, deleteLesson, addLesson, openLesson, units, users } = useStore();
   const teachers = users.filter((u: any) => u.role === 'teacher');
@@ -364,6 +413,7 @@ function ManageLessons() {
   const [pdfs, setPdfs] = useState<{ name: string; url: string }[]>([]);
   const [newPdf, setNewPdf] = useState({ name: '', url: '' });
   const [examHtml, setExamHtml] = useState('');
+  const [assignmentQuestions, setAssignmentQuestions] = useState<any[]>([]);
 
   const defaultUnitId = newLesson.unitId || units[0]?.id || '';
   const defaultTeacherId = newLesson.teacherId || teachers[0]?.id || '';
@@ -415,6 +465,15 @@ function ManageLessons() {
       };
     }
 
+    if (assignmentQuestions.length > 0) {
+      payload.assignment = {
+        title: `واجب: ${newLesson.title}`,
+        description: 'واجب الدرس',
+        totalPoints: assignmentQuestions.reduce((sum, q) => sum + q.points, 0),
+        questions: assignmentQuestions,
+      };
+    }
+
     const success = await addLesson(payload);
     if (success) {
       toast.success('تم إضافة الدرس بنجاح');
@@ -422,6 +481,7 @@ function ManageLessons() {
       setNewLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', teacherId: '', allowPdfDownload: true, videoSource: 'youtube' });
       setPdfs([]);
       setExamHtml('');
+      setAssignmentQuestions([]);
     } else {
       toast.error('فشل في إضافة الدرس');
     }
@@ -553,6 +613,28 @@ function ManageLessons() {
               <div className="flex items-center gap-2">
                 <Switch checked={newLesson.allowPdfDownload} onCheckedChange={c => setNewLesson({ ...newLesson, allowPdfDownload: c })} />
                 <Label>السماح للطلاب بتحميل PDF</Label>
+              </div>
+
+              {/* Assignment Section */}
+              <div className="border rounded-lg p-3">
+                <Label>الواجب (اختياري)</Label>
+                <p className="text-xs text-muted-foreground mb-2">أضف أسئلة أو صورة للواجب. يمكن إضافة صورة بدون نص.</p>
+                {assignmentQuestions.length > 0 && (
+                  <div className="space-y-1 mb-2">
+                    {assignmentQuestions.map((q, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 rounded bg-muted/50">
+                        <Badge>{i + 1}</Badge>
+                        {q.imageUrl && <Badge variant="secondary">📷 صورة</Badge>}
+                        <span className="flex-1 text-sm line-clamp-1">{q.text}</span>
+                        <Badge variant="secondary">{q.points} نقطة</Badge>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setAssignmentQuestions(assignmentQuestions.filter((_, idx) => idx !== i))}>
+                          <Trash2 className="w-3 h-3 text-rose-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <AssignmentMiniBuilder onAdd={(q) => setAssignmentQuestions([...assignmentQuestions, q])} />
               </div>
 
               {/* HTML Exam Section */}

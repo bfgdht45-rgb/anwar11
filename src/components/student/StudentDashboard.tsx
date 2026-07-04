@@ -117,13 +117,15 @@ function StudentOverview() {
 
 function BrowseLessons() {
   const { lessons, openLesson, currentUser, toggleFavorite } = useStore();
-  const [selectedStage, setSelectedStage] = useState(currentUser?.stage || 'high');
-  const [selectedYear, setSelectedYear] = useState(currentUser?.year || 'second');
 
-  // فلترة الدروس حسب المرحلة والسنة
+  // تثبيت الفلتر على مرحلة الطالب فقط - لا يمكن تغييرها
+  const selectedStage = currentUser?.stage || 'high';
+  const selectedYear = currentUser?.year || 'second';
+
+  // فلترة الدروس حسب مرحلة الطالب فقط
   const filteredLessons = lessons.filter((l: any) => {
     const unit = l.unit;
-    if (!unit) return true; // لو مفيش وحدة، اعرض الدرس
+    if (!unit) return true;
     return unit.stageId === selectedStage && unit.yearId === selectedYear;
   });
 
@@ -134,23 +136,15 @@ function BrowseLessons() {
     <div className="space-y-4">
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap gap-2 items-center">
-            <Label>المرحلة:</Label>
-            <div className="flex gap-1">
-              {stages.map(s => (
-                <Button key={s.id} size="sm" variant={selectedStage === s.id ? 'default' : 'outline'} onClick={() => setSelectedStage(s.id)}>
-                  {s.name}
-                </Button>
-              ))}
-            </div>
-            <Label className="mr-2">السنة:</Label>
-            <div className="flex gap-1">
-              {stages.find(s => s.id === selectedStage)?.years.map(y => (
-                <Button key={y.id} size="sm" variant={selectedYear === y.id ? 'default' : 'outline'} onClick={() => setSelectedYear(y.id)}>
-                  {y.name}
-                </Button>
-              ))}
-            </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="secondary">
+              {selectedStage === 'high' ? 'المرحلة الثانوية' : 'المرحلة الإعدادية'}
+            </Badge>
+            <span>السنة:</span>
+            <Badge variant="secondary">
+              {selectedYear === 'first' ? 'الأولى' : selectedYear === 'second' ? 'الثانية' : 'الثالثة'}
+            </Badge>
+            <span className="mr-auto">دروس مرحلتك فقط</span>
           </div>
         </CardContent>
       </Card>
