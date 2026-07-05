@@ -120,6 +120,11 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 
 // ===== PDF Viewer =====
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
+  // استخدام Google Docs Viewer لعرض الملف داخل الصفحة مباشرة
+  const viewerUrl = url && url.startsWith('http')
+    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+    : url;
+
   return (
     <Card>
       <CardContent className="p-4">
@@ -128,36 +133,19 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
             <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 font-bold">
               PDF
             </div>
-            <div>
-              <div className="font-medium text-sm">{name}</div>
-            </div>
+            <div className="font-medium text-sm">{name}</div>
           </div>
-          <div className="flex gap-2">
+          {allowDownload && (
             <Button size="sm" variant="outline" asChild>
-              <a href={url} target="_blank" rel="noopener noreferrer">
-                <Eye className="w-4 h-4 ml-1" /> تصفح
-              </a>
+              <a href={url} target="_blank" rel="noopener noreferrer">تحميل</a>
             </Button>
-            {allowDownload && (
-              <Button size="sm" variant="outline" asChild>
-                <a href={url} download target="_blank" rel="noopener noreferrer">
-                  تحميل
-                </a>
-              </Button>
-            )}
-          </div>
+          )}
         </div>
         <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          <iframe
-            src={url}
-            className="w-full h-full"
-            title={name}
-          />
+          <iframe src={viewerUrl} className="w-full h-full" title={name} />
         </div>
         {!allowDownload && (
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            تم تعطيل التحميل من قبل الإدارة
-          </p>
+          <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>
         )}
       </CardContent>
     </Card>

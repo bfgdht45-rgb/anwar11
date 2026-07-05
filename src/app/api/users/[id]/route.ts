@@ -45,9 +45,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    // حذف كل السجلات المرتبطة بالمستخدم الأول
+    await query(`DELETE FROM "Grade" WHERE "studentId" = $1`, [id]);
+    await query(`DELETE FROM "Notification" WHERE "userId" = $1`, [id]);
+    await query(`DELETE FROM "Payment" WHERE "studentId" = $1`, [id]);
+    await query(`DELETE FROM "Invoice" WHERE "studentId" = $1`, [id]);
+    await query(`DELETE FROM "Certificate" WHERE "studentId" = $1`, [id]);
+    await query(`DELETE FROM "Comment" WHERE "userId" = $1`, [id]);
+    // لو المعلم عنده دروس، بنحول الدروس لمعلم تاني أو نحذفها
+    await query(`UPDATE "Lesson" SET "teacherId" = 'user-admin-001' WHERE "teacherId" = $1`, [id]);
+    // أخيراً حذف المستخدم
     await query(`DELETE FROM "User" WHERE id = $1`, [id]);
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: 'فشل الحذف' }, { status: 500 });
+  } catch (error: any) {
+    console.error('DELETE /api/users/[id] error:', error);
+    return NextResponse.json({ error: 'فشل الحذف: ' + error.message }, { status: 500 });
   }
 }
