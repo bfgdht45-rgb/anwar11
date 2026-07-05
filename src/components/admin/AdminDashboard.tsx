@@ -436,7 +436,7 @@ function AssignmentMiniBuilder({ onAdd }: { onAdd: (q: any) => void }) {
 }
 
 function ManageLessons() {
-  const { lessons, deleteLesson, addLesson, openLesson, units, users } = useStore();
+  const { lessons, deleteLesson, addLesson, updateLesson, openLesson, units, users } = useStore();
   const teachers = users.filter((u: any) => u.role === 'teacher');
   const [showAdd, setShowAdd] = useState(false);
   const [newLesson, setNewLesson] = useState({
@@ -552,6 +552,15 @@ function ManageLessons() {
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => openLesson(l.id)}>
                         <Eye className="w-4 h-4 ml-1" /> عرض
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => {
+                        const newTitle = prompt('عنوان الدرس:', l.title);
+                        if (newTitle !== null) {
+                          updateLesson(l.id, { title: newTitle, description: l.description, videoUrl: l.videoUrl, videoDuration: l.videoDuration, allowPdfDownload: l.allowPdfDownload });
+                          toast.success('تم التعديل');
+                        }
+                      }}>
+                        <Edit className="w-4 h-4 ml-1" /> تعديل
                       </Button>
                       <Button size="icon" variant="ghost" onClick={async () => {
                         if (confirm(`حذف الدرس "${l.title}"؟`)) {

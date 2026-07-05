@@ -111,7 +111,7 @@ function TeacherOverview() {
 }
 
 function MyLessons() {
-  const { lessons, currentUser, openLesson, deleteLesson } = useStore();
+  const { lessons, currentUser, openLesson, deleteLesson, updateLesson } = useStore();
   const myLessons = lessons.filter((l: any) => l.teacherId === currentUser?.id);
 
   return (
@@ -135,6 +135,15 @@ function MyLessons() {
                     <Badge variant="secondary">👁 {l.views || 0}</Badge>
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => openLesson(l.id)}><Eye className="w-4 h-4 ml-1" /> عرض</Button>
+                      <Button size="sm" variant="ghost" onClick={() => {
+                        const newTitle = prompt('عنوان الدرس:', l.title);
+                        if (newTitle !== null) {
+                          updateLesson(l.id, { title: newTitle, description: l.description, videoUrl: l.videoUrl, videoDuration: l.videoDuration, allowPdfDownload: l.allowPdfDownload });
+                          toast.success('تم التعديل');
+                        }
+                      }}>
+                        <Edit className="w-4 h-4 ml-1" /> تعديل
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={async () => {
                         if (confirm(`حذف الدرس "${l.title}"؟`)) {
                           await deleteLesson(l.id);
