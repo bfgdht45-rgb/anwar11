@@ -135,12 +135,12 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
           <div className="flex gap-2">
             <Button size="sm" variant="outline" asChild>
               <a href={url} target="_blank" rel="noopener noreferrer">
-                <Eye className="w-4 h-4 ml-1" /> فتح
+                <Eye className="w-4 h-4 ml-1" /> تصفح
               </a>
             </Button>
             {allowDownload && (
               <Button size="sm" variant="outline" asChild>
-                <a href={url} download={name} target="_blank" rel="noopener noreferrer">
+                <a href={url} download target="_blank" rel="noopener noreferrer">
                   تحميل
                 </a>
               </Button>

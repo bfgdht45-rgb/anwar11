@@ -942,7 +942,7 @@ function QuestionBank() {
           <div className="space-y-2 mb-4">
             {questionBank.map((q: any) => (
               <div key={q.id} className="flex items-center gap-2 p-3 rounded-lg border">
-                {q.imageUrl && <img src={q.imageUrl} alt="سؤال" className="w-12 h-12 object-cover rounded" />}
+                {q.imageUrl && <img src={q.imageUrl.replace(/"/g, '')} alt="سؤال" className="w-12 h-12 object-cover rounded" />}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium line-clamp-1">{q.text}</div>
                   <div className="flex gap-1 mt-1">

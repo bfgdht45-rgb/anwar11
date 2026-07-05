@@ -243,7 +243,7 @@ function MyAssignments() {
                   </div>
                   {q.imageUrl && (
                     <div className="mb-3">
-                      <img src={q.imageUrl} alt="سؤال" className="max-w-full rounded-lg border" />
+                      <img src={q.imageUrl.replace(/"/g, '')} alt="سؤال" className="max-w-full rounded-lg border" />
                     </div>
                   )}
                   {q.type === 'MCQ' && (
