@@ -164,10 +164,10 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // تحويل الصورة لـ base64 عشان تخزينها مباشرة
       const reader = new FileReader();
       reader.onload = () => {
-        setNewQ({ ...newQ, imageUrl: reader.result as string });
+        const result = reader.result as string;
+        setNewQ({ ...newQ, imageUrl: result });
       };
       reader.readAsDataURL(file);
     }

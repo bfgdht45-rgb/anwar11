@@ -356,13 +356,27 @@ function ManageStudents() {
 // ===== Manage Lessons =====
 function AssignmentMiniBuilder({ onAdd }: { onAdd: (q: any) => void }) {
   const [text, setText] = useState('');
+  const [imageFile, setImageFile] = useState<string>('');
   const [imageUrl, setImageUrl] = useState('');
   const [type, setType] = useState('MCQ');
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [points, setPoints] = useState(5);
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageFile(reader.result as string);
+        setImageUrl(''); // مسح الرابط لو فيه
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAdd = () => {
-    if (!text && !imageUrl) {
+    const finalImage = imageFile || imageUrl;
+    if (!text && !finalImage) {
       toast.error('أدخل نص أو صورة على الأقل');
       return;
     }
@@ -373,18 +387,36 @@ function AssignmentMiniBuilder({ onAdd }: { onAdd: (q: any) => void }) {
       difficulty: 'EASY',
       correctAnswer: correctAnswer || 'إجابة بصرية',
       points,
-      imageUrl: imageUrl || undefined,
+      imageUrl: finalImage || undefined,
       options: type === 'MCQ' ? [] : undefined,
     });
-    setText(''); setImageUrl(''); setCorrectAnswer(''); setPoints(5);
+    setText(''); setImageFile(''); setImageUrl(''); setCorrectAnswer(''); setPoints(5);
     toast.success('تم إضافة السؤال');
   };
 
   return (
     <div className="space-y-2">
       <Textarea placeholder="نص السؤال (اختياري لو فيه صورة)" value={text} onChange={e => setText(e.target.value)} />
-      <Input placeholder="رابط صورة مباشر: https://..." dir="ltr" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-      {imageUrl && <img src={imageUrl} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border" />}
+      
+      <div>
+        <Label>رفع صورة من الجهاز (مفضل)</Label>
+        <Input type="file" accept="image/*" onChange={handleImageUpload} />
+        {imageFile && (
+          <div className="relative inline-block mt-2">
+            <img src={imageFile} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border" />
+            <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => setImageFile('')}>
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <Label>أو رابط صورة مباشر (يجب أن ينتهي بـ .jpg أو .png)</Label>
+        <Input placeholder="https://example.com/image.jpg" dir="ltr" value={imageUrl} onChange={e => setImageUrl(e.target.value)} disabled={!!imageFile} />
+        {imageUrl && !imageFile && <img src={imageUrl} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border mt-2" />}
+      </div>
+
       <div className="grid grid-cols-3 gap-2">
         <Select value={type} onValueChange={setType}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -910,17 +942,27 @@ function ManageExams() {
 function QuestionBank() {
   const { questionBank, addQuestion, deleteQuestion, units } = useStore();
   const [showAdd, setShowAdd] = useState(false);
-  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ' as any, difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', imageUrl: '' });
+  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ' as any, difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', imageUrl: '', imageFile: '' });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setNewQ({ ...newQ, imageFile: reader.result as string, imageUrl: '' });
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAdd = async () => {
-    if (!newQ.text && !newQ.imageUrl) {
+    const finalImage = newQ.imageFile || newQ.imageUrl;
+    if (!newQ.text && !finalImage) {
       toast.error('أدخل نص السؤال أو صورة على الأقل');
       return;
     }
-    const success = await addQuestion({ ...newQ, text: newQ.text || 'سؤال بصورة', correctAnswer: newQ.correctAnswer || 'إجابة بصرية' });
+    const success = await addQuestion({ ...newQ, text: newQ.text || 'سؤال بصورة', correctAnswer: newQ.correctAnswer || 'إجابة بصرية', imageUrl: finalImage });
     if (success) {
       toast.success('تم إضافة السؤال');
-      setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', imageUrl: '' });
+      setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, stageId: 'high', yearId: 'first', imageUrl: '', imageFile: '' });
       setShowAdd(false);
     } else {
       toast.error('فشل في الإضافة');
@@ -970,9 +1012,19 @@ function QuestionBank() {
 
               {/* رفع صورة */}
               <div>
-                <Label>صورة للسؤال (رابط مباشر)</Label>
-                <Input placeholder="https://example.com/image.jpg" dir="ltr" value={newQ.imageUrl} onChange={e => setNewQ({ ...newQ, imageUrl: e.target.value })} />
-                {newQ.imageUrl && <img src={newQ.imageUrl} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border mt-2" />}
+                <Label>رفع صورة من الجهاز (مفضل)</Label>
+                <Input type="file" accept="image/*" onChange={handleImageUpload} />
+                {newQ.imageFile && (
+                  <div className="relative inline-block mt-2">
+                    <img src={newQ.imageFile} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border" />
+                    <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => setNewQ({ ...newQ, imageFile: '' })}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+                <Label className="mt-2">أو رابط صورة مباشر (يجب أن ينتهي بـ .jpg أو .png)</Label>
+                <Input placeholder="https://example.com/image.jpg" dir="ltr" value={newQ.imageUrl} onChange={e => setNewQ({ ...newQ, imageUrl: e.target.value })} disabled={!!newQ.imageFile} />
+                {newQ.imageUrl && !newQ.imageFile && <img src={newQ.imageUrl} alt="معاينة" className="w-20 h-20 object-cover rounded-lg border mt-2" />}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
