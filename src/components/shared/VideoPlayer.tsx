@@ -11,7 +11,6 @@ interface VideoPlayerProps {
   lesson: Lesson;
 }
 
-// تحويل روابط YouTube المختلفة إلى embed URL
 function normalizeYouTubeUrl(url: string): string {
   if (!url) return '';
   if (url.includes('/embed/')) return url;
@@ -57,10 +56,7 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
     if (!videoUrl) {
       return (
         <div className="w-full h-full flex items-center justify-center text-white">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>لم يتم إضافة رابط فيديو لهذا الدرس</p>
-          </div>
+          <p>لم يتم إضافة رابط فيديو لهذا الدرس</p>
         </div>
       );
     }
@@ -68,62 +64,26 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
     switch (lesson.videoSource) {
       case 'youtube':
         return (
-          <iframe
-            src={videoUrl}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={lesson.title}
-            onLoad={() => setLoaded(true)}
-            onError={() => setError(true)}
-          />
+          <iframe src={videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />
         );
       case 'vimeo':
         return (
-          <iframe
-            src={videoUrl}
-            className="w-full h-full"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            title={lesson.title}
-            onLoad={() => setLoaded(true)}
-          />
+          <iframe src={videoUrl} className="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />
         );
       case 'direct':
       case 'cloudflare':
       case 'bunny':
         return (
-          <video
-            controls
-            controlsList="nodownload noplaybackrate"
-            disablePictureInPicture
-            className="w-full h-full"
-            onLoadedData={() => setLoaded(true)}
-            onError={() => setError(true)}
-            onContextMenu={e => e.preventDefault()}
-            autoPlay={false}
-          >
+          <video controls controlsList="nodownload noplaybackrate" disablePictureInPicture className="w-full h-full" onLoadedData={() => setLoaded(true)} onContextMenu={e => e.preventDefault()}>
             <source src={videoUrl} type="video/mp4" />
-            متصفحك لا يدعم تشغيل الفيديو
           </video>
         );
       case 'gdrive':
         return (
-          <iframe
-            src={videoUrl}
-            className="w-full h-full"
-            allow="autoplay"
-            allowFullScreen
-            title={lesson.title}
-            onLoad={() => setLoaded(true)}
-          />
+          <iframe src={videoUrl} className="w-full h-full" allow="autoplay" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />
         );
       default:
-        return (
-          <div className="w-full h-full flex items-center justify-center text-white">
-            <p>مصدر فيديو غير معروف</p>
-          </div>
-        );
+        return null;
     }
   };
 
@@ -133,49 +93,18 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
         {!loaded && !error && (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900 to-teal-900">
             <div className="text-center text-white">
-              <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-pulse">
-                <Play className="w-10 h-10 mr-[-3px]" />
-              </div>
-              <p className="text-sm opacity-80">جاري تحميل الفيديو...</p>
-            </div>
-          </div>
-        )}
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-rose-900">
-            <div className="text-center text-white p-4">
-              <AlertCircle className="w-12 h-12 mx-auto mb-2" />
-              <p className="text-sm">تعذر تحميل الفيديو. تأكد من صحة الرابط.</p>
-              <p className="text-xs opacity-70 mt-2" dir="ltr">{videoUrl}</p>
+              <Play className="w-10 h-10 mx-auto animate-pulse" />
+              <p className="text-sm opacity-80 mt-2">جاري تحميل الفيديو...</p>
             </div>
           </div>
         )}
         {renderVideo()}
-        <div className="absolute top-2 right-2 pointer-events-none opacity-30 text-white text-xs">
-          © أكاديمية الرياضيات
-        </div>
       </div>
       <CardContent className="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Badge variant="secondary" className="gap-1">
-            <Clock className="w-3 h-3" />
-            {lesson.videoDuration}
-          </Badge>
-          <Badge variant="secondary" className="gap-1">
-            <Eye className="w-3 h-3" />
-            {(lesson.views || 0).toLocaleString('ar-EG')} مشاهدة
-          </Badge>
-          <Badge variant="outline" className="gap-1">
-            <Lock className="w-3 h-3" />
-            محمي من التحميل
-          </Badge>
-          <Badge variant="outline">
-            {lesson.videoSource === 'youtube' && 'YouTube'}
-            {lesson.videoSource === 'vimeo' && 'Vimeo'}
-            {lesson.videoSource === 'direct' && 'رفع مباشر'}
-            {lesson.videoSource === 'gdrive' && 'Google Drive'}
-            {lesson.videoSource === 'cloudflare' && 'Cloudflare Stream'}
-            {lesson.videoSource === 'bunny' && 'Bunny Stream'}
-          </Badge>
+          <Badge variant="secondary" className="gap-1"><Clock className="w-3 h-3" />{lesson.videoDuration}</Badge>
+          <Badge variant="secondary" className="gap-1"><Eye className="w-3 h-3" />{(lesson.views || 0).toLocaleString('ar-EG')} مشاهدة</Badge>
+          <Badge variant="outline" className="gap-1"><Lock className="w-3 h-3" />محمي من التحميل</Badge>
         </div>
       </CardContent>
     </Card>
@@ -185,7 +114,6 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 // ===== PDF Viewer =====
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
   const isBase64 = url.startsWith('data:');
-
   return (
     <Card>
       <CardContent className="p-4">
@@ -194,32 +122,14 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
             <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 font-bold">PDF</div>
             <div className="font-medium text-sm">{name}</div>
           </div>
-          <div className="flex gap-2">
+          {allowDownload && (
             <Button size="sm" variant="outline" asChild>
-              <a href={url} target="_blank" rel="noopener noreferrer">فتح الملف</a>
+              <a href={url} download={isBase64 ? name : undefined} target="_blank" rel="noopener noreferrer">تحميل</a>
             </Button>
-            {allowDownload && (
-              <Button size="sm" variant="outline" asChild>
-                <a href={url} download={isBase64 ? name : undefined} target="_blank" rel="noopener noreferrer">تحميل</a>
-              </Button>
-            )}
-          </div>
-        </div>
-        <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border flex items-center justify-center">
-          {isBase64 ? (
-            <iframe src={url} className="w-full h-full" title={name} />
-          ) : (
-            <object data={url} type="application/pdf" className="w-full h-full" aria-label={name}>
-              <div className="text-center p-4">
-                <FileText className="w-12 h-12 mx-auto mb-3 text-rose-600" />
-                <p className="text-sm font-medium mb-2">المتصفح لا يدعم العرض المباشر لهذا الملف</p>
-                <p className="text-xs text-muted-foreground mb-3">لعرض المحتوى، اضغط على زر "فتح الملف" بالأعلى</p>
-                <Button size="sm" asChild>
-                  <a href={url} target="_blank" rel="noopener noreferrer">فتح الملف في تبويب جديد</a>
-                </Button>
-              </div>
-            </object>
           )}
+        </div>
+        <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
+          <iframe src={url} className="w-full h-full" title={name} />
         </div>
         {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>}
       </CardContent>
