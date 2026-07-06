@@ -313,6 +313,18 @@ function AddLesson() {
     toast.success('تم إضافة الملف للقائمة');
   };
 
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPdfs([...pdfs, { name: file.name, url: reader.result as string }]);
+        toast.success('تم رفع الملف');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = async () => {
     if (!lesson.title || !lesson.videoUrl) {
       toast.error('أدخل العنوان ورابط الفيديو');
@@ -424,6 +436,10 @@ function AddLesson() {
             <Input placeholder="اسم الملف" value={newPdf.name} onChange={e => setNewPdf({ ...newPdf, name: e.target.value })} />
             <Input placeholder="الرابط" dir="ltr" value={newPdf.url} onChange={e => setNewPdf({ ...newPdf, url: e.target.value })} />
             <Button onClick={handleAddPdf}><Plus className="w-4 h-4" /></Button>
+          </div>
+          <div className="mt-2">
+            <Label className="text-xs">أو ارفع ملف PDF من جهازك (يتم عرضه داخل الدرس مباشرة)</Label>
+            <Input type="file" accept=".pdf" onChange={handlePdfUpload} className="mt-1" />
           </div>
           {pdfs.length > 0 && (
             <div className="space-y-2">
