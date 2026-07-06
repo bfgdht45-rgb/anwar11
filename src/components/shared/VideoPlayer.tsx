@@ -39,7 +39,6 @@ function normalizeGDriveUrl(url: string): string {
 
 export function VideoPlayer({ lesson }: VideoPlayerProps) {
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
 
   const getVideoUrl = () => {
     switch (lesson.videoSource) {
@@ -54,66 +53,37 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 
   const renderVideo = () => {
     if (!videoUrl) {
-      return (
-        <div className="w-full h-full flex items-center justify-center text-white">
-          <p>لم يتم إضافة رابط فيديو لهذا الدرس</p>
-        </div>
-      );
+      return <div className="w-full h-full flex items-center justify-center text-white"><p>لم يتم إضافة رابط فيديو</p></div>;
     }
-
     switch (lesson.videoSource) {
-      case 'youtube':
-        return (
-          <iframe src={videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />
-        );
-      case 'vimeo':
-        return (
-          <iframe src={videoUrl} className="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />
-        );
-      case 'direct':
-      case 'cloudflare':
-      case 'bunny':
-        return (
-          <video controls controlsList="nodownload noplaybackrate" disablePictureInPicture className="w-full h-full" onLoadedData={() => setLoaded(true)} onContextMenu={e => e.preventDefault()}>
-            <source src={videoUrl} type="video/mp4" />
-          </video>
-        );
-      case 'gdrive':
-        return (
-          <iframe src={videoUrl} className="w-full h-full" allow="autoplay" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />
-        );
-      default:
-        return null;
+      case 'youtube': return <iframe src={videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />;
+      case 'vimeo': return <iframe src={videoUrl} className="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />;
+      case 'direct': case 'cloudflare': case 'bunny': return <video controls controlsList="nodownload noplaybackrate" disablePictureInPicture className="w-full h-full" onLoadedData={() => setLoaded(true)} onContextMenu={e => e.preventDefault()}><source src={videoUrl} type="video/mp4" /></video>;
+      case 'gdrive': return <iframe src={videoUrl} className="w-full h-full" allow="autoplay" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />;
+      default: return null;
     }
   };
 
   return (
     <Card className="overflow-hidden">
       <div className="relative aspect-video bg-black">
-        {!loaded && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900 to-teal-900">
-            <div className="text-center text-white">
-              <Play className="w-10 h-10 mx-auto animate-pulse" />
-              <p className="text-sm opacity-80 mt-2">جاري تحميل الفيديو...</p>
-            </div>
-          </div>
-        )}
+        {!loaded && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900 to-teal-900"><div className="text-center text-white"><Play className="w-10 h-10 mx-auto animate-pulse" /><p className="text-sm opacity-80 mt-2">جاري تحميل الفيديو...</p></div></div>}
         {renderVideo()}
       </div>
       <CardContent className="p-4">
         <div className="flex flex-wrap items-center gap-3">
           <Badge variant="secondary" className="gap-1"><Clock className="w-3 h-3" />{lesson.videoDuration}</Badge>
           <Badge variant="secondary" className="gap-1"><Eye className="w-3 h-3" />{(lesson.views || 0).toLocaleString('ar-EG')} مشاهدة</Badge>
-          <Badge variant="outline" className="gap-1"><Lock className="w-3 h-3" />محمي من التحميل</Badge>
+          <Badge variant="outline" className="gap-1"><Lock className="w-3 h-3" />محمي</Badge>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// ===== PDF Viewer =====
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
   const isBase64 = url.startsWith('data:');
+  const viewerUrl = isBase64 ? null : `/pdf-viewer?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}&download=${allowDownload}`;
   return (
     <Card>
       <CardContent className="p-4">
@@ -122,16 +92,12 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
             <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 font-bold">PDF</div>
             <div className="font-medium text-sm">{name}</div>
           </div>
-          {allowDownload && (
-            <Button size="sm" variant="outline" asChild>
-              <a href={url} download={isBase64 ? name : undefined} target="_blank" rel="noopener noreferrer">تحميل</a>
-            </Button>
-          )}
+          {allowDownload && isBase64 && <Button size="sm" variant="outline" asChild><a href={url} download={name} target="_blank" rel="noopener noreferrer">تحميل</a></Button>}
         </div>
         <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          <iframe src={url} className="w-full h-full" title={name} />
+          {isBase64 ? <iframe src={url} className="w-full h-full" title={name} /> : <iframe src={viewerUrl!} className="w-full h-full" title={name} />}
         </div>
-        {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>}
+        {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل</p>}
       </CardContent>
     </Card>
   );
