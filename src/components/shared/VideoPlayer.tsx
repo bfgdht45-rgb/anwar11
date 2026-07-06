@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Clock, Lock, Play } from 'lucide-react';
+import { Eye, Clock, Lock, Play, FileText } from 'lucide-react';
 import type { Lesson } from '@/lib/types';
 
 interface VideoPlayerProps {
@@ -120,6 +120,8 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 
 // ===== PDF Viewer =====
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
+  const isGoogleDrive = url.includes('google.com') || url.includes('drive.google');
+  
   return (
     <Card>
       <CardContent className="p-4">
@@ -130,7 +132,7 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" asChild>
-              <a href={url} target="_blank" rel="noopener noreferrer">فتح في تبويب</a>
+              <a href={url} target="_blank" rel="noopener noreferrer">فتح الملف</a>
             </Button>
             {allowDownload && (
               <Button size="sm" variant="outline" asChild>
@@ -139,8 +141,19 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
             )}
           </div>
         </div>
-        <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          <iframe src={`${url}#view=FitH`} className="w-full h-full" title={name} />
+        <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border flex items-center justify-center">
+          {isGoogleDrive ? (
+            <div className="text-center p-4">
+              <FileText className="w-12 h-12 mx-auto mb-3 text-rose-600" />
+              <p className="text-sm font-medium mb-2">هذا الملف من Google Drive</p>
+              <p className="text-xs text-muted-foreground mb-3">لعرض الملف، اضغط على زر "فتح الملف" بالأعلى</p>
+              <Button size="sm" asChild>
+                <a href={url} target="_blank" rel="noopener noreferrer">فتح الملف</a>
+              </Button>
+            </div>
+          ) : (
+            <iframe src={`${url}#view=FitH`} className="w-full h-full" title={name} />
+          )}
         </div>
         {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>}
       </CardContent>
