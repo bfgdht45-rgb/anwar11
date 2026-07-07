@@ -183,7 +183,7 @@ function BrowseLessons() {
 }
 
 function MyAssignments() {
-  const { lessons, currentUser, addGrade } = useStore();
+  const { lessons, currentUser, addGrade, store } = useStore() as any;
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [imageAnswers, setImageAnswers] = useState<Record<string, string>>({});
 
@@ -207,6 +207,23 @@ function MyAssignments() {
     (assignment.questions || []).forEach((q: any) => {
       if (answers[`${assignment.id}-${q.id}`] === q.correctAnswer) score += q.points;
     });
+
+    // حفظ إجابات الطالب (بالصور) في قاعدة البيانات
+    for (const q of (assignment.questions || [])) {
+      const textAns = answers[`${assignment.id}-${q.id}`] || '';
+      const imgAns = imageAnswers[`${assignment.id}-${q.id}`] || '';
+      if (textAns || imgAns) {
+        await store.submitAssignmentAnswer({
+          studentId: currentUser?.id,
+          studentName: currentUser?.name,
+          assignmentId: assignment.id,
+          questionId: q.id,
+          textAnswer: textAns,
+          imageAnswer: imgAns,
+        });
+      }
+    }
+
     await addGrade({
       score,
       totalScore: assignment.totalPoints,
