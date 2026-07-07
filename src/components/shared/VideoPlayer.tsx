@@ -79,7 +79,6 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
   const isBase64 = url.startsWith('data:');
-  const viewerUrl = isBase64 ? url : `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
   return (
     <Card>
       <CardContent className="p-4">
@@ -89,6 +88,9 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
             <div className="font-medium text-sm">{name}</div>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" asChild>
+              <a href={url} target="_blank" rel="noopener noreferrer">فتح</a>
+            </Button>
             {allowDownload && (
               <Button size="sm" variant="outline" asChild>
                 <a href={url} download={isBase64 ? name : undefined} target="_blank" rel="noopener noreferrer">تحميل</a>
@@ -97,7 +99,7 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
           </div>
         </div>
         <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          <iframe src={viewerUrl} className="w-full h-full" title={name} />
+          <iframe src={url} className="w-full h-full" title={name} />
         </div>
         {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>}
       </CardContent>
