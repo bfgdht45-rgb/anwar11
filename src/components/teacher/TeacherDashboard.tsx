@@ -75,7 +75,6 @@ function TeacherOverview() {
   const { currentUser, lessons } = useStore();
   const myLessons = lessons.filter((l: any) => l.teacherId === currentUser?.id);
   const totalViews = myLessons.reduce((sum: number, l: any) => sum + (l.views || 0), 0);
-
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden border-0 bg-gradient-to-l from-purple-600 to-fuchsia-700 text-white">
@@ -99,7 +98,6 @@ function TeacherOverview() {
           </div>
         </CardContent>
       </Card>
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={Users} label="عدد الطلاب" value={currentUser?.studentsCount || 0} color="text-emerald-600" />
         <StatCard icon={Eye} label="إجمالي المشاهدات" value={totalViews} color="text-amber-600" trend="+15%" />
@@ -113,7 +111,6 @@ function TeacherOverview() {
 function MyLessons() {
   const { lessons, currentUser, openLesson, deleteLesson, updateLesson } = useStore();
   const myLessons = lessons.filter((l: any) => l.teacherId === currentUser?.id);
-
   return (
     <Card>
       <CardHeader><CardTitle>دروسي ({myLessons.length})</CardTitle></CardHeader>
@@ -165,35 +162,20 @@ function MyLessons() {
 }
 
 function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQuestions: (q: any[]) => void }) {
-  const [newQ, setNewQ] = useState({
-    text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5,
-    options: ['', '', '', ''], imageUrl: '',
-  });
+  const [newQ, setNewQ] = useState({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, options: ['', '', '', ''], imageUrl: '' });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        setNewQ({ ...newQ, imageUrl: result });
-      };
+      reader.onload = () => { const result = reader.result as string; setNewQ({ ...newQ, imageUrl: result }); };
       reader.readAsDataURL(file);
     }
   };
 
   const addQuestion = () => {
-    if (!newQ.text && !newQ.imageUrl) {
-      toast.error('أدخل نص السؤال أو صورة على الأقل');
-      return;
-    }
-    const q = {
-      id: `q-${Date.now()}`,
-      ...newQ,
-      text: newQ.text || 'سؤال بصورة',
-      correctAnswer: newQ.correctAnswer || 'إجابة بصرية',
-      options: newQ.type === 'MCQ' ? newQ.options.filter(o => o) : undefined,
-    };
+    if (!newQ.text && !newQ.imageUrl) { toast.error('أدخل نص السؤال أو صورة على الأقل'); return; }
+    const q = { id: `q-${Date.now()}`, ...newQ, text: newQ.text || 'سؤال بصورة', correctAnswer: newQ.correctAnswer || 'إجابة بصرية', options: newQ.type === 'MCQ' ? newQ.options.filter(o => o) : undefined };
     setQuestions([...questions, q]);
     setNewQ({ text: '', type: 'MCQ', difficulty: 'EASY', correctAnswer: '', points: 5, options: ['', '', '', ''], imageUrl: '' });
     toast.success('تم إضافة السؤال');
@@ -206,8 +188,8 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
           {questions.map((q, i) => (
             <div key={q.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
               <Badge>{i + 1}</Badge>
-              <span className="flex-1 text-sm line-clamp-1">{q.text}</span>
               {q.imageUrl && <Badge variant="secondary">📷 صورة</Badge>}
+              <span className="flex-1 text-sm line-clamp-1">{q.text}</span>
               <Badge variant="secondary">{q.type}</Badge>
               <Badge variant="secondary">{q.points} نقطة</Badge>
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}>
@@ -217,11 +199,8 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
           ))}
         </div>
       )}
-
       <div className="border rounded-lg p-3 space-y-2">
         <div><Label>نص السؤال</Label><Textarea value={newQ.text} onChange={e => setNewQ({ ...newQ, text: e.target.value })} /></div>
-
-        {/* رفع صورة للسؤال */}
         <div>
           <Label>صورة للسؤال (اختياري - رفع ملف أو رابط مباشر)</Label>
           <div className="space-y-2">
@@ -267,22 +246,6 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
           </div>
           <div><Label>الدرجة</Label><Input type="number" value={newQ.points} onChange={e => setNewQ({ ...newQ, points: +e.target.value })} /></div>
         </div>
-
-        {newQ.type === 'MCQ' && (
-          <div className="space-y-1">
-            <Label>الاختيارات</Label>
-            {newQ.options.map((opt, i) => (
-              <Input key={i} placeholder={`الاختيار ${i + 1}`} value={opt}
-                onChange={e => {
-                  const opts = [...newQ.options];
-                  opts[i] = e.target.value;
-                  setNewQ({ ...newQ, options: opts });
-                }} />
-            ))}
-          </div>
-        )}
-
-        <div><Label>الإجابة الصحيحة</Label><Input value={newQ.correctAnswer} onChange={e => setNewQ({ ...newQ, correctAnswer: e.target.value })} /></div>
         <Button size="sm" onClick={addQuestion}><Plus className="w-4 h-4 ml-2" /> إضافة السؤال</Button>
       </div>
     </div>
@@ -291,23 +254,15 @@ function AssignmentBuilder({ questions, setQuestions }: { questions: any[]; setQ
 
 function AddLesson() {
   const { addLesson, currentUser, units } = useStore();
-  const [lesson, setLesson] = useState({
-    title: '', description: '', videoUrl: '', videoDuration: '',
-    unitId: '', videoSource: 'youtube' as Lesson['videoSource'],
-    allowPdfDownload: true,
-  });
+  const [lesson, setLesson] = useState({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', videoSource: 'youtube' as Lesson['videoSource'], allowPdfDownload: true });
   const [pdfs, setPdfs] = useState<{ name: string; url: string }[]>([]);
   const [newPdf, setNewPdf] = useState({ name: '', url: '' });
   const [examHtml, setExamHtml] = useState('');
   const [assignmentQuestions, setAssignmentQuestions] = useState<any[]>([]);
-
   const defaultUnitId = lesson.unitId || units[0]?.id || '';
 
   const handleAddPdf = () => {
-    if (!newPdf.name || !newPdf.url) {
-      toast.error('أدخل اسم الملف والرابط');
-      return;
-    }
+    if (!newPdf.name || !newPdf.url) { toast.error('أدخل اسم الملف والرابط'); return; }
     setPdfs([...pdfs, newPdf]);
     setNewPdf({ name: '', url: '' });
     toast.success('تم إضافة الملف للقائمة');
@@ -317,70 +272,24 @@ function AddLesson() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setPdfs([...pdfs, { name: file.name, url: reader.result as string }]);
-        toast.success('تم رفع الملف');
-      };
+      reader.onload = () => { setPdfs([...pdfs, { name: file.name, url: reader.result as string }]); toast.success('تم رفع الملف'); };
       reader.readAsDataURL(file);
     }
   };
 
   const handleSave = async () => {
-    if (!lesson.title || !lesson.videoUrl) {
-      toast.error('أدخل العنوان ورابط الفيديو');
-      return;
-    }
-    if (!defaultUnitId) {
-      toast.error('لا توجد وحدات - شغل /api/seed أولاً');
-      return;
-    }
-    if (!currentUser?.id) {
-      toast.error('يجب تسجيل الدخول كمعلم');
-      return;
-    }
-
-    const payload: any = {
-      unitId: lesson.unitId || defaultUnitId,
-      teacherId: currentUser.id,
-      title: lesson.title,
-      description: lesson.description,
-      videoUrl: lesson.videoUrl,
-      videoSource: lesson.videoSource,
-      videoDuration: lesson.videoDuration || '00:00',
-      allowPdfDownload: lesson.allowPdfDownload,
-      pdfs: pdfs.map(p => ({ name: p.name, url: p.url, size: '1.2 MB', pages: 10 })),
-      additionalFiles: [],
-    };
-
-    if (examHtml.trim()) {
-      payload.exam = {
-        title: `امتحان: ${lesson.title}`,
-        description: 'امتحان تفاعلي HTML',
-        htmlContent: examHtml,
-        durationMinutes: 30,
-        passingScore: 60,
-      };
-    }
-
-    if (assignmentQuestions.length > 0) {
-      payload.assignment = {
-        title: `واجب: ${lesson.title}`,
-        description: 'واجب الدرس',
-        totalPoints: assignmentQuestions.reduce((sum, q) => sum + q.points, 0),
-        questions: assignmentQuestions,
-      };
-    }
-
+    if (!lesson.title || !lesson.videoUrl) { toast.error('أدخل العنوان ورابط الفيديو'); return; }
+    if (!defaultUnitId) { toast.error('لا توجد وحدات - شغل /api/seed أولاً'); return; }
+    if (!currentUser?.id) { toast.error('يجب تسجيل الدخول كمعلم'); return; }
+    const payload: any = { unitId: lesson.unitId || defaultUnitId, teacherId: currentUser.id, title: lesson.title, description: lesson.description, videoUrl: lesson.videoUrl, videoSource: lesson.videoSource, videoDuration: lesson.videoDuration || '00:00', allowPdfDownload: lesson.allowPdfDownload, pdfs: pdfs.map(p => ({ name: p.name, url: p.url, size: '1.2 MB', pages: 10 })), additionalFiles: [] };
+    if (examHtml.trim()) { payload.exam = { title: `امتحان: ${lesson.title}`, description: 'امتحان تفاعلي HTML', htmlContent: examHtml, durationMinutes: 30, passingScore: 60 }; }
+    if (assignmentQuestions.length > 0) { payload.assignment = { title: `واجب: ${lesson.title}`, description: 'واجب الدرس', totalPoints: assignmentQuestions.reduce((sum, q) => sum + q.points, 0), questions: assignmentQuestions }; }
     const success = await addLesson(payload);
     if (success) {
       toast.success('تم إضافة الدرس بنجاح');
       setLesson({ title: '', description: '', videoUrl: '', videoDuration: '', unitId: '', videoSource: 'youtube', allowPdfDownload: true });
-      setPdfs([]);
-      setExamHtml('');
-      setAssignmentQuestions([]);
-    } else {
-      toast.error('فشل في إضافة الدرس');
-    }
+      setPdfs([]); setExamHtml(''); setAssignmentQuestions([]);
+    } else { toast.error('فشل في إضافة الدرس'); }
   };
 
   return (
@@ -428,7 +337,6 @@ function AddLesson() {
           </div>
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader><CardTitle>ملفات PDF</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -456,7 +364,6 @@ function AddLesson() {
           )}
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader><CardTitle>الواجب (اختياري)</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -464,14 +371,12 @@ function AddLesson() {
           <AssignmentBuilder questions={assignmentQuestions} setQuestions={setAssignmentQuestions} />
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader><CardTitle>الامتحان التفاعلي (HTML) - اختياري</CardTitle></CardHeader>
         <CardContent>
           <HtmlExamBuilder onSave={setExamHtml} />
         </CardContent>
       </Card>
-
       <Button size="lg" className="w-full" onClick={handleSave}>
         <Save className="w-4 h-4 ml-2" /> نشر الدرس
       </Button>
@@ -555,8 +460,7 @@ function MyPDFs() {
 
 function MyExams() {
   const { exams, addExam, deleteExam, currentUser } = useStore();
-  // عرض كل الامتحانات + اللي عملها المعلم
-  const myExams = exams; // كل الامتحانات متاحة للمعلم
+  const myExams = exams;
   const [showAdd, setShowAdd] = useState(false);
   const [previewExam, setPreviewExam] = useState<Exam | null>(null);
   const [newExam, setNewExam] = useState({ title: '', description: '', duration: 30 });
@@ -565,21 +469,13 @@ function MyExams() {
   const handleAdd = async () => {
     if (!newExam.title) { toast.error('أدخل عنوان الامتحان'); return; }
     if (!htmlContent) { toast.error('أدخل كود HTML'); return; }
-    const success = await addExam({
-      title: newExam.title,
-      description: newExam.description,
-      durationMinutes: newExam.duration,
-      isHtmlExam: true,
-      htmlContent,
-    } as any);
+    const success = await addExam({ title: newExam.title, description: newExam.description, durationMinutes: newExam.duration, isHtmlExam: true, htmlContent } as any);
     if (success) {
       toast.success('تم إنشاء الامتحان');
       setShowAdd(false);
       setNewExam({ title: '', description: '', duration: 30 });
       setHtmlContent('');
-    } else {
-      toast.error('فشل في الإنشاء');
-    }
+    } else { toast.error('فشل في الإنشاء'); }
   };
 
   return (
@@ -631,7 +527,6 @@ function MyExams() {
           )}
         </CardContent>
       </Card>
-
       <Dialog open={!!previewExam} onOpenChange={(open) => !open && setPreviewExam(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
@@ -650,7 +545,6 @@ function MyExams() {
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>إنشاء امتحان HTML تفاعلي</DialogTitle></DialogHeader>
@@ -671,39 +565,113 @@ function MyExams() {
 }
 
 function StudentResults() {
-  const { grades } = useStore();
+  const { grades, lessons } = useStore();
+  const [answers, setAnswers] = useState<any[]>([]);
+  const [showAnswers, setShowAnswers] = useState(false);
+
+  const loadAnswers = async () => {
+    const result = await useStore.getState().fetchStudentAnswers();
+    setAnswers(result);
+    setShowAnswers(true);
+  };
+
   return (
-    <Card>
-      <CardHeader><CardTitle>نتائج الطلاب ({grades.length})</CardTitle></CardHeader>
-      <CardContent>
-        {grades.length === 0 ? (
-          <EmptyState icon={Users} title="لا توجد نتائج بعد" />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الطالب</TableHead>
-                <TableHead>النوع</TableHead>
-                <TableHead>العنوان</TableHead>
-                <TableHead>الدرجة</TableHead>
-                <TableHead>التاريخ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {grades.map((g: any) => (
-                <TableRow key={g.id}>
-                  <TableCell>{g.studentName}</TableCell>
-                  <TableCell><Badge variant="secondary">{g.itemType === 'exam' ? 'امتحان' : 'واجب'}</Badge></TableCell>
-                  <TableCell className="font-medium">{g.title}</TableCell>
-                  <TableCell><Badge variant={g.score / g.totalScore >= 0.6 ? 'default' : 'destructive'}>{g.score}/{g.totalScore}</Badge></TableCell>
-                  <TableCell>{new Date(g.date).toLocaleDateString('ar-EG')}</TableCell>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>نتائج الطلاب ({grades.length})</CardTitle>
+            <Button onClick={loadAnswers}><Eye className="w-4 h-4 ml-2" /> عرض إجابات الطلاب</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {grades.length === 0 ? (
+            <EmptyState icon={Users} title="لا توجد نتائج بعد" />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>الطالب</TableHead>
+                  <TableHead>النوع</TableHead>
+                  <TableHead>العنوان</TableHead>
+                  <TableHead>الدرجة</TableHead>
+                  <TableHead>التاريخ</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {grades.map((g: any) => (
+                  <TableRow key={g.id}>
+                    <TableCell>{g.studentName}</TableCell>
+                    <TableCell><Badge variant="secondary">{g.itemType === 'exam' ? 'امتحان' : 'واجب'}</Badge></TableCell>
+                    <TableCell className="font-medium">{g.title}</TableCell>
+                    <TableCell><Badge variant={g.score / g.totalScore >= 0.6 ? 'default' : 'destructive'}>{g.score}/{g.totalScore}</Badge></TableCell>
+                    <TableCell>{new Date(g.date).toLocaleDateString('ar-EG')}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+      {showAnswers && (
+        <Card>
+          <CardHeader>
+            <CardTitle>إجابات الطلاب ({answers.length})</CardTitle>
+            <CardDescription>صور وحلول الطلاب المرفوعة</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {answers.length === 0 ? (
+              <EmptyState icon={FileText} title="لا توجد إجابات مرفوعة" />
+            ) : (
+              answers.map((ans: any, i: number) => (
+                <div key={ans.id || i} className="p-4 rounded-lg border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium">{ans.studentName}</span>
+                      <span className="text-xs text-muted-foreground mr-2">{new Date(ans.createdAt).toLocaleDateString('ar-EG')}</span>
+                    </div>
+                    {ans.grade !== null && ans.grade !== undefined && (
+                      <Badge variant={ans.grade >= 50 ? 'default' : 'destructive'}>الدرجة: {ans.grade}</Badge>
+                    )}
+                  </div>
+                  {ans.textAnswer && (
+                    <div className="text-sm bg-muted/50 p-2 rounded">{ans.textAnswer}</div>
+                  )}
+                  {ans.imageAnswer && (
+                    <div>
+                      <img src={ans.imageAnswer} alt="إجابة الطالب" className="max-w-full rounded-lg border" />
+                    </div>
+                  )}
+                  {ans.feedback && (
+                    <div className="text-sm bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded">
+                      <strong>ملاحظات المعلم:</strong> {ans.feedback}
+                    </div>
+                  )}
+                  {!ans.feedback && (
+                    <div className="flex gap-2">
+                      <Input placeholder="اكتب ملاحظاتك للطالب..." id={`feedback-${ans.id}`} />
+                      <Button size="sm" onClick={async () => {
+                        const feedback = (document.getElementById(`feedback-${ans.id}`) as HTMLInputElement)?.value;
+                        const grade = prompt('أعطِ درجة للإجابة (0-100):');
+                        if (feedback || grade) {
+                          await fetch(`/api/answers?id=${ans.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ grade: grade ? parseInt(grade) : null, feedback }),
+                          });
+                          toast.success('تم حفظ التقييم');
+                          loadAnswers();
+                        }
+                      }}>تقييم</Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
 
@@ -711,17 +679,13 @@ function TeacherComments() {
   const { comments, fetchComments, addComment } = useStore() as any;
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
-
   useEffect(() => { fetchComments(); }, [fetchComments]);
-
   const handleReply = async (lessonId: string, commentId: string) => {
     if (!replyText.trim()) { toast.error('اكتب الرد'); return; }
     await addComment(lessonId, `رد: ${replyText}`, undefined);
-    setReplyText('');
-    setReplyTo(null);
+    setReplyText(''); setReplyTo(null);
     toast.success('تم إرسال الرد');
   };
-
   return (
     <Card>
       <CardHeader><CardTitle>التعليقات ({comments.length})</CardTitle></CardHeader>
@@ -761,14 +725,12 @@ function TeacherComments() {
 function TeacherNotifications() {
   const { notifications, addNotification, currentUser } = useStore();
   const [msg, setMsg] = useState('');
-
   const handleSend = async () => {
     if (!msg) { toast.error('اكتب رسالة'); return; }
     await addNotification({ title: `رسالة من ${currentUser?.name}`, message: msg, type: 'info' } as any);
     toast.success('تم إرسال الإشعار');
     setMsg('');
   };
-
   return (
     <div className="space-y-4">
       <Card>
