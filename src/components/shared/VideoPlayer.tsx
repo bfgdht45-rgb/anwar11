@@ -39,7 +39,6 @@ function normalizeGDriveUrl(url: string): string {
 
 export function VideoPlayer({ lesson }: VideoPlayerProps) {
   const [loaded, setLoaded] = useState(false);
-
   const getVideoUrl = () => {
     switch (lesson.videoSource) {
       case 'youtube': return normalizeYouTubeUrl(lesson.videoUrl);
@@ -48,7 +47,6 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
       default: return lesson.videoUrl;
     }
   };
-
   const videoUrl = getVideoUrl();
 
   const renderVideo = () => {
@@ -81,7 +79,7 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
   const isBase64 = url.startsWith('data:');
-  const viewerUrl = isBase64 ? null : `/pdf-viewer?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}&download=${allowDownload}`;
+  const viewerUrl = isBase64 ? url : `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
   return (
     <Card>
       <CardContent className="p-4">
@@ -90,12 +88,18 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
             <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 font-bold">PDF</div>
             <div className="font-medium text-sm">{name}</div>
           </div>
-          {allowDownload && isBase64 && <Button size="sm" variant="outline" asChild><a href={url} download={name} target="_blank" rel="noopener noreferrer">تحميل</a></Button>}
+          <div className="flex gap-2">
+            {allowDownload && (
+              <Button size="sm" variant="outline" asChild>
+                <a href={url} download={isBase64 ? name : undefined} target="_blank" rel="noopener noreferrer">تحميل</a>
+              </Button>
+            )}
+          </div>
         </div>
         <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          {isBase64 ? <iframe src={url} className="w-full h-full" title={name} /> : <iframe src={viewerUrl!} className="w-full h-full" title={name} />}
+          <iframe src={viewerUrl} className="w-full h-full" title={name} />
         </div>
-        {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل</p>}
+        {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>}
       </CardContent>
     </Card>
   );
