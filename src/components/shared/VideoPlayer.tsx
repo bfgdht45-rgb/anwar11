@@ -79,6 +79,8 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
   const isBase64 = url.startsWith('data:');
+  // استخدام الـ proxy للروابط الخارجية عشان نتخطى مشاكل X-Frame-Options
+  const viewerUrl = isBase64 ? url : `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
   return (
     <Card>
       <CardContent className="p-4">
@@ -94,7 +96,7 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
           )}
         </div>
         <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          <embed src={url} type="application/pdf" className="w-full h-full" />
+          <iframe src={viewerUrl} className="w-full h-full" title={name} />
         </div>
         {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>}
       </CardContent>
