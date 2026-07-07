@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Clock, Lock, Play, FileText } from 'lucide-react';
+import { Eye, Clock, Lock, Play, FileText, Download } from 'lucide-react';
 import type { Lesson } from '@/lib/types';
 
 interface VideoPlayerProps {
@@ -78,8 +78,37 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
 }
 
 export function PdfViewer({ name, url, allowDownload }: { name: string; url: string; allowDownload: boolean }) {
+  const [pdfData, setPdfData] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const isBase64 = url.startsWith('data:');
-  const proxyUrl = `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
+
+  useEffect(() => {
+    if (isBase64) {
+      setPdfData(url);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const loadPdf = async () => {
+      try {
+        const res = await fetch(`/api/pdf-proxy?url=${encodeURIComponent(url)}`);
+        if (!res.ok) throw new Error('فشل');
+        const blob = await res.blob();
+        if (cancelled) return;
+        const blobUrl = URL.createObjectURL(blob);
+        setPdfData(blobUrl);
+        setLoading(false);
+      } catch {
+        if (cancelled) return;
+        setError(true);
+        setLoading(false);
+      }
+    };
+    loadPdf();
+    return () => { cancelled = true; };
+  }, [url, isBase64]);
 
   return (
     <Card>
@@ -89,35 +118,32 @@ export function PdfViewer({ name, url, allowDownload }: { name: string; url: str
             <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 font-bold">PDF</div>
             <div className="font-medium text-sm">{name}</div>
           </div>
-          <div className="flex gap-2">
-            {!isBase64 && (
-              <Button size="sm" variant="outline" asChild>
-                <a href={proxyUrl} target="_blank" rel="noopener noreferrer">فتح في صفحة كاملة</a>
-              </Button>
-            )}
-            {allowDownload && (
-              <Button size="sm" variant="outline" asChild>
-                <a href={url} download={isBase64 ? name : undefined} target="_blank" rel="noopener noreferrer">تحميل</a>
-              </Button>
-            )}
-          </div>
-        </div>
-        <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border">
-          {isBase64 ? (
-            <iframe src={url} className="w-full h-full" title={name} />
-          ) : (
-            <object data={proxyUrl} type="application/pdf" className="w-full h-full">
-              <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
-                <FileText className="w-12 h-12 mx-auto mb-3 text-rose-600" />
-                <p className="text-sm font-medium mb-2">المتصفح لا يدعم العرض المباشر</p>
-                <p className="text-xs text-muted-foreground mb-3">لعرض محتوى الملف، اضغط على زر "فتح في صفحة كاملة"</p>
-                <Button size="sm" asChild>
-                  <a href={proxyUrl} target="_blank" rel="noopener noreferrer">فتح الملف</a>
-                </Button>
-              </div>
-            </object>
+          {allowDownload && pdfData && !loading && !error && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={pdfData} download={name}>تحميل</a>
+            </Button>
           )}
         </div>
+        
+        <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden border flex items-center justify-center">
+          {loading ? (
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div>
+              <p className="text-sm text-muted-foreground">جاري تحميل الملف...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center p-4">
+              <FileText className="w-12 h-12 mx-auto mb-3 text-rose-600" />
+              <p className="text-sm font-medium mb-2">تعذر تحميل الملف</p>
+              <Button size="sm" asChild>
+                <a href={url} target="_blank" rel="noopener noreferrer">فتح الرابط مباشرة</a>
+              </Button>
+            </div>
+          ) : pdfData ? (
+            <iframe src={pdfData} className="w-full h-full" title={name} />
+          ) : null}
+        </div>
+        
         {!allowDownload && <p className="text-xs text-muted-foreground mt-2 text-center">تم تعطيل التحميل من قبل الإدارة</p>}
       </CardContent>
     </Card>
