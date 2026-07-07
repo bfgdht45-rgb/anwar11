@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import {
   LayoutDashboard, BookOpen, Award, CreditCard, FileText, Bell, Trophy,
   Heart, CheckCircle2, Clock, Play, Download, Star, Calendar, TrendingUp,
-  AlertCircle, Upload, MessageSquare
+  AlertCircle, Upload, MessageSquare, Trash2
 } from 'lucide-react';
 
 const navItems = [
@@ -117,12 +117,9 @@ function StudentOverview() {
 
 function BrowseLessons() {
   const { lessons, openLesson, currentUser, toggleFavorite } = useStore();
-
-  // تثبيت الفلتر على مرحلة الطالب فقط - لا يمكن تغييرها
   const selectedStage = currentUser?.stage || 'high';
   const selectedYear = currentUser?.year || 'second';
 
-  // فلترة الدروس حسب مرحلة الطالب فقط
   const filteredLessons = lessons.filter((l: any) => {
     const unit = l.unit;
     if (!unit) return true;
@@ -188,11 +185,22 @@ function BrowseLessons() {
 function MyAssignments() {
   const { lessons, currentUser, addGrade } = useStore();
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [imageAnswers, setImageAnswers] = useState<Record<string, string>>({});
 
-  // جلب كل الواجبات من كل الدروس
   const allAssignments = lessons
     .filter((l: any) => l.assignment)
     .map((l: any) => ({ ...l.assignment, lessonTitle: l.title, lessonId: l.id }));
+
+  const handleImageUpload = (questionId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageAnswers({ ...imageAnswers, [questionId]: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (assignment: any) => {
     let score = 0;
@@ -211,6 +219,7 @@ function MyAssignments() {
     } as any);
     toast.success(`تم تسليم الواجب. درجتك: ${score}/${assignment.totalPoints}`);
     setAnswers({});
+    setImageAnswers({});
   };
 
   return (
@@ -250,14 +259,7 @@ function MyAssignments() {
                     <div className="grid gap-2">
                       {(q.options || []).map((opt: string) => (
                         <label key={opt} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
-                          <input
-                            type="radio"
-                            name={q.id}
-                            value={opt}
-                            checked={answers[`${assignment.id}-${q.id}`] === opt}
-                            onChange={e => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: e.target.value })}
-                            className="w-4 h-4"
-                          />
+                          <input type="radio" name={q.id} value={opt} checked={answers[`${assignment.id}-${q.id}`] === opt} onChange={e => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: e.target.value })} className="w-4 h-4" />
                           <span className="text-sm">{opt}</span>
                         </label>
                       ))}
@@ -266,33 +268,39 @@ function MyAssignments() {
                   {q.type === 'TRUEFALSE' && (
                     <div className="flex gap-2">
                       {['true', 'false'].map(opt => (
-                        <Button
-                          key={opt}
-                          size="sm"
-                          variant={answers[`${assignment.id}-${q.id}`] === opt ? 'default' : 'outline'}
-                          onClick={() => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: opt })}
-                        >
+                        <Button key={opt} size="sm" variant={answers[`${assignment.id}-${q.id}`] === opt ? 'default' : 'outline'} onClick={() => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: opt })}>
                           {opt === 'true' ? 'صحيح' : 'خطأ'}
                         </Button>
                       ))}
                     </div>
                   )}
                   {q.type === 'FILL' && (
-                    <Input
-                      placeholder="اكتب إجابتك..."
-                      value={answers[`${assignment.id}-${q.id}`] || ''}
-                      onChange={e => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: e.target.value })}
-                    />
+                    <Input placeholder="اكتب إجابتك..." value={answers[`${assignment.id}-${q.id}`] || ''} onChange={e => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: e.target.value })} />
                   )}
                   {q.type === 'ESSAY' && (
-                    <textarea
-                      className="w-full p-3 rounded-lg border bg-card text-sm"
-                      rows={3}
-                      placeholder="اكتب إجابتك..."
-                      value={answers[`${assignment.id}-${q.id}`] || ''}
-                      onChange={e => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: e.target.value })}
-                    />
+                    <textarea className="w-full p-3 rounded-lg border bg-card text-sm" rows={3} placeholder="اكتب إجابتك..." value={answers[`${assignment.id}-${q.id}`] || ''} onChange={e => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: e.target.value })} />
                   )}
+                  
+                  {/* رفع صورة بالإجابة - متاح لكل الأسئلة */}
+                  <div className="mt-3 pt-3 border-t">
+                    <Label className="text-xs text-muted-foreground">أو ارفع صورة بإجابتك:</Label>
+                    <div className="flex gap-2 items-center mt-1">
+                      <Input type="file" accept="image/*" onChange={e => handleImageUpload(`${assignment.id}-${q.id}`, e)} className="flex-1 text-xs" />
+                      {imageAnswers[`${assignment.id}-${q.id}`] && (
+                        <div className="relative">
+                          <img src={imageAnswers[`${assignment.id}-${q.id}`]} alt="إجابتك" className="w-16 h-16 object-cover rounded-lg border" />
+                          <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => {
+                            const updated = { ...imageAnswers };
+                            delete updated[`${assignment.id}-${q.id}`];
+                            setImageAnswers(updated);
+                          }}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <Input placeholder="أو الصق رابط صورة مباشر: https://..." dir="ltr" className="mt-2 text-xs" value={imageAnswers[`${assignment.id}-${q.id}`]?.startsWith('data:') ? '' : (imageAnswers[`${assignment.id}-${q.id}`] || '')} onChange={e => setImageAnswers({ ...imageAnswers, [`${assignment.id}-${q.id}`]: e.target.value })} />
+                  </div>
                 </div>
               ))}
               <Button className="w-full" onClick={() => handleSubmit(assignment)}>تسليم الواجب</Button>
