@@ -81,7 +81,7 @@ function StudentOverview() {
             </Avatar>
             <div>
               <h2 className="text-2xl font-bold mb-1">مرحباً، {currentUser?.name} 👋</h2>
-              <p className="opacity-90 text-sm">
+              <p className="opacity-900 text-sm">
                 {currentUser?.stage === 'high' ? 'المرحلة الثانوية' : 'المرحلة الإعدادية'} - {currentUser?.year === 'first' ? 'الأولى' : currentUser?.year === 'second' ? 'الثانية' : 'الثالثة'}
               </p>
               <Badge className="mt-2 bg-white/20 text-white border-white/30">
@@ -183,7 +183,8 @@ function BrowseLessons() {
 }
 
 function MyAssignments() {
-  const { lessons, currentUser, addGrade, store } = useStore() as any;
+  const store = useStore();
+  const { lessons, currentUser, addGrade } = store;
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [imageAnswers, setImageAnswers] = useState<Record<string, string>>({});
 
@@ -208,7 +209,6 @@ function MyAssignments() {
       if (answers[`${assignment.id}-${q.id}`] === q.correctAnswer) score += q.points;
     });
 
-    // حفظ إجابات الطالب (بالصور) في قاعدة البيانات
     for (const q of (assignment.questions || [])) {
       const textAns = answers[`${assignment.id}-${q.id}`] || '';
       const imgAns = imageAnswers[`${assignment.id}-${q.id}`] || '';
@@ -298,7 +298,6 @@ function MyAssignments() {
                     <textarea className="w-full p-3 rounded-lg border bg-card text-sm" rows={3} placeholder="اكتب إجابتك..." value={answers[`${assignment.id}-${q.id}`] || ''} onChange={e => setAnswers({ ...answers, [`${assignment.id}-${q.id}`]: e.target.value })} />
                   )}
                   
-                  {/* رفع صورة بالإجابة - متاح لكل الأسئلة */}
                   <div className="mt-3 pt-3 border-t">
                     <Label className="text-xs text-muted-foreground">أو ارفع صورة بإجابتك:</Label>
                     <div className="flex gap-2 items-center mt-1">
@@ -552,7 +551,6 @@ function MySubscription() {
 }
 
 function MyCertificates() {
-  const { currentUser } = useStore();
   return (
     <Card>
       <CardHeader><CardTitle>الشهادات</CardTitle></CardHeader>
