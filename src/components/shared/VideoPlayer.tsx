@@ -52,9 +52,7 @@ export function VideoPlayer({ lesson }: VideoPlayerProps) {
   const videoUrl = getVideoUrl();
 
   const renderVideo = () => {
-    if (!videoUrl) {
-      return <div className="w-full h-full flex items-center justify-center text-white"><p>لم يتم إضافة رابط فيديو</p></div>;
-    }
+    if (!videoUrl) return <div className="w-full h-full flex items-center justify-center text-white"><p>لم يتم إضافة رابط فيديو</p></div>;
     switch (lesson.videoSource) {
       case 'youtube': return <iframe src={videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />;
       case 'vimeo': return <iframe src={videoUrl} className="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={lesson.title} onLoad={() => setLoaded(true)} />;
