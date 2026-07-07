@@ -14,20 +14,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   ArrowRight, Eye, Clock, FileText, Award, MessageSquare, Heart,
-  CheckCircle2, Play, Star, Send, BookOpen, Download
+  CheckCircle2, Play, Star, Send, BookOpen, Download, X
 } from 'lucide-react';
 import HtmlExamRunner from '@/components/shared/HtmlExamRunner';
 
 export default function LessonPage() {
+  const store = useStore();
   const {
     lessons, currentLessonId, currentUser, setView, addComment,
     toggleFavorite, markLessonComplete, addGrade, fetchComments, comments
-  } = useStore();
+  } = store;
 
   const [tab, setTab] = useState('content');
   const [commentText, setCommentText] = useState('');
   const [commentRating, setCommentRating] = useState(5);
   const [assignmentAnswers, setAssignmentAnswers] = useState<Record<string, string>>({});
+  const [imageAnswers, setImageAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (currentLessonId) {
@@ -77,13 +79,29 @@ export default function LessonPage() {
     toast.success('تم إضافة تعليقك');
   };
 
-  const handleAssignmentSubmit = () => {
+  const handleAssignmentSubmit = async () => {
     if (!assignment) return;
     let score = 0;
     assignment.questions.forEach((q: any) => {
       if (assignmentAnswers[q.id] === q.correctAnswer) score += q.points;
     });
-    addGrade({
+
+    for (const q of (assignment.questions || [])) {
+      const textAns = assignmentAnswers[q.id] || '';
+      const imgAns = imageAnswers[q.id] || '';
+      if (textAns || imgAns) {
+        await store.submitAssignmentAnswer({
+          studentId: currentUser?.id,
+          studentName: currentUser?.name,
+          assignmentId: assignment.id,
+          questionId: q.id,
+          textAnswer: textAns,
+          imageAnswer: imgAns,
+        });
+      }
+    }
+
+    await addGrade({
       score,
       totalScore: assignment.totalPoints,
       itemType: 'assignment',
@@ -95,6 +113,18 @@ export default function LessonPage() {
     });
     toast.success(`تم تسليم الواجب. درجتك: ${score}/${assignment.totalPoints}`);
     setAssignmentAnswers({});
+    setImageAnswers({});
+  };
+
+  const handleImageUpload = (questionId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageAnswers({ ...imageAnswers, [questionId]: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -216,14 +246,7 @@ export default function LessonPage() {
                             <div className="grid gap-2">
                               {(q.options || []).map((opt: string) => (
                                 <label key={opt} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name={q.id}
-                                    value={opt}
-                                    checked={assignmentAnswers[q.id] === opt}
-                                    onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })}
-                                    className="w-4 h-4"
-                                  />
+                                  <input type="radio" name={q.id} value={opt} checked={assignmentAnswers[q.id] === opt} onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })} className="w-4 h-4" />
                                   <span className="text-sm">{opt}</span>
                                 </label>
                               ))}
@@ -232,35 +255,45 @@ export default function LessonPage() {
                           {q.type === 'TRUEFALSE' && (
                             <div className="flex gap-2">
                               {['true', 'false'].map(opt => (
-                                <Button
-                                  key={opt}
-                                  size="sm"
-                                  variant={assignmentAnswers[q.id] === opt ? 'default' : 'outline'}
-                                  onClick={() => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: opt })}
-                                >
+                                <Button key={opt} size="sm" variant={assignmentAnswers[q.id] === opt ? 'default' : 'outline'} onClick={() => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: opt })}>
                                   {opt === 'true' ? 'صحيح' : 'خطأ'}
                                 </Button>
                               ))}
                             </div>
                           )}
                           {q.type === 'FILL' && (
-                            <Input
-                              placeholder="اكتب إجابتك..."
-                              value={assignmentAnswers[q.id] || ''}
-                              onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })}
-                            />
+                            <Input placeholder="اكتب إجابتك..." value={assignmentAnswers[q.id] || ''} onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })} />
                           )}
                           {q.type === 'ESSAY' && (
-                            <Textarea
-                              rows={3}
-                              placeholder="اكتب إجابتك..."
-                              value={assignmentAnswers[q.id] || ''}
-                              onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })}
-                            />
+                            <Textarea rows={3} placeholder="اكتب إجابتك..." value={assignmentAnswers[q.id] || ''} onChange={e => setAssignmentAnswers({ ...assignmentAnswers, [q.id]: e.target.value })} />
+                          )}
+                          
+                          {currentUser?.role === 'student' && (
+                            <div className="mt-3 pt-3 border-t">
+                              <Label className="text-xs text-muted-foreground">أو ارفع صورة بإجابتك:</Label>
+                              <div className="flex gap-2 items-center mt-1">
+                                <Input type="file" accept="image/*" onChange={e => handleImageUpload(q.id, e)} className="flex-1 text-xs" />
+                                {imageAnswers[q.id] && (
+                                  <div className="relative">
+                                    <img src={imageAnswers[q.id]} alt="إجابتك" className="w-16 h-16 object-cover rounded-lg border" />
+                                    <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => {
+                                      const updated = { ...imageAnswers };
+                                      delete updated[q.id];
+                                      setImageAnswers(updated);
+                                    }}>
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                              <Input placeholder="أو الصق رابط صورة مباشر: https://..." dir="ltr" className="mt-2 text-xs" value={imageAnswers[q.id]?.startsWith('data:') ? '' : (imageAnswers[q.id] || '')} onChange={e => setImageAnswers({ ...imageAnswers, [q.id]: e.target.value })} />
+                            </div>
                           )}
                         </div>
                       ))}
-                      <Button className="w-full" onClick={handleAssignmentSubmit}>تسليم الواجب</Button>
+                      {currentUser?.role === 'student' && (
+                        <Button className="w-full" onClick={handleAssignmentSubmit}>تسليم الواجب</Button>
+                      )}
                     </CardContent>
                   </Card>
                 ) : (
@@ -359,12 +392,7 @@ export default function LessonPage() {
                       ))}
                     </div>
                   </div>
-                  <Textarea
-                    placeholder="اكتب تعليقك..."
-                    value={commentText}
-                    onChange={e => setCommentText(e.target.value)}
-                    rows={3}
-                  />
+                  <Textarea placeholder="اكتب تعليقك..." value={commentText} onChange={e => setCommentText(e.target.value)} rows={3} />
                   <Button onClick={handleComment}>
                     <Send className="w-4 h-4 ml-2" />
                     إرسال التعليق
