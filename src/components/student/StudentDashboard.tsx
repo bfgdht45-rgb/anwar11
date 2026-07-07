@@ -27,6 +27,7 @@ const navItems = [
   { id: 'assignments', label: 'الواجبات', icon: FileText },
   { id: 'exams', label: 'الامتحانات', icon: Award },
   { id: 'grades', label: 'الدرجات', icon: TrendingUp },
+  { id: 'myanswers', label: 'تقييماتي', icon: CheckCircle2 },
   { id: 'subscription', label: 'الاشتراك', icon: CreditCard },
   { id: 'certificates', label: 'الشهادات', icon: Trophy },
   { id: 'favorites', label: 'المفضلة', icon: Heart },
@@ -58,6 +59,7 @@ export default function StudentDashboard() {
       {activeItem === 'assignments' && <MyAssignments />}
       {activeItem === 'exams' && <MyExams />}
       {activeItem === 'grades' && <MyGrades />}
+      {activeItem === 'myanswers' && <MyAnswers />}
       {activeItem === 'subscription' && <MySubscription />}
       {activeItem === 'certificates' && <MyCertificates />}
       {activeItem === 'favorites' && <MyFavorites />}
@@ -81,7 +83,7 @@ function StudentOverview() {
             </Avatar>
             <div>
               <h2 className="text-2xl font-bold mb-1">مرحباً، {currentUser?.name} 👋</h2>
-              <p className="opacity-900 text-sm">
+              <p className="opacity-90 text-sm">
                 {currentUser?.stage === 'high' ? 'المرحلة الثانوية' : 'المرحلة الإعدادية'} - {currentUser?.year === 'first' ? 'الأولى' : currentUser?.year === 'second' ? 'الثانية' : 'الثالثة'}
               </p>
               <Badge className="mt-2 bg-white/20 text-white border-white/30">
@@ -429,6 +431,65 @@ function MyGrades() {
               })}
             </TableBody>
           </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MyAnswers() {
+  const { currentUser, lessons } = useStore();
+  const [answers, setAnswers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (currentUser?.id) {
+        try {
+          const res = await fetch(`/api/answers?studentId=${currentUser.id}`);
+          const data = await res.json();
+          setAnswers(data.answers || []);
+        } catch (e) {}
+      }
+    };
+    load();
+  }, [currentUser?.id]);
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>تقييمات المعلم على إجاباتي ({answers.length})</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        {answers.length === 0 ? (
+          <EmptyState icon={FileText} title="لا توجد إجابات مسلمة بعد" description="عندما تسلم واجب ويقيمه المعلم، سيظهر هنا" />
+        ) : (
+          answers.map((ans: any, i: number) => (
+            <div key={ans.id || i} className="p-4 rounded-lg border space-y-2">
+              <div className="flex items-center justify-between">
+                <Badge variant="secondary">{new Date(ans.createdAt).toLocaleDateString('ar-EG')}</Badge>
+                {ans.grade !== null && ans.grade !== undefined ? (
+                  <Badge variant={ans.grade >= 50 ? 'default' : 'destructive'}>الدرجة: {ans.grade}/100</Badge>
+                ) : (
+                  <Badge variant="outline">في انتظار التقييم</Badge>
+                )}
+              </div>
+              {ans.textAnswer && (
+                <div className="text-sm bg-muted/50 p-2 rounded">
+                  <strong>إجابتك:</strong> {ans.textAnswer}
+                </div>
+              )}
+              {ans.imageAnswer && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">صورة إجابتك:</p>
+                  <img src={ans.imageAnswer} alt="إجابتي" className="max-w-full rounded-lg border" />
+                </div>
+              )}
+              {ans.feedback && (
+                <div className="text-sm bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg">
+                  <strong>ملاحظات المعلم:</strong>
+                  <p className="mt-1">{ans.feedback}</p>
+                </div>
+              )}
+            </div>
+          ))
         )}
       </CardContent>
     </Card>
